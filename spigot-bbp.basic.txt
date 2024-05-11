@@ -1,0 +1,172 @@
+REM BBP pi calculation like youtu.be/SPTzzSuBFlc
+:
+REM todo convert bignum operators to byte-by-byte
+:
+REM in distant future the two bignums are opposite
+REM endianness because they can then share memory
+:
+REM using four divisions for small denominators
+REM the numerator is a bignum
+REM the denominator is probably two bytes
+:
+REM the temporary T is a bignum
+REM but as all we do is shift a two byte window
+REM it probably shouldn't be
+:
+REM we're proceeding like this
+REM   S=0:N=4:K=0
+REM   REPEAT
+REM     S=S+N/(K+1)
+REM     S=S-N/(2*(K+4))
+REM     S=S-N/(4*(K+5))
+REM     S=S-N/(4*(K+6))
+REM     PRINT I%," ";S;" digit ";INTS
+REM     S=S-INTS
+REM     S=S*10
+REM     N=N*10/16
+REM     K=K+8
+REM   UNTIL K>19
+:
+T=TIME: @%=&2090C: REM MODE 0
+:
+REM bignums are a list of bytes - just 4 at present
+REM one byte, the first byte, is the integer part
+:
+U%=2^24 : REM the scaled unit, 1.0, a global
+REM byte-aligning U might be simplest
+:
+big=8
+DIM S% big : REM our bignum series accumulator
+DIM N% big : REM bignum numerator
+DIM T% big : REM temporary bignum for division
+:
+REM our numerator is rescaled by 10/16 each digit
+PROCset(N%, 1)
+:
+REM the denominator is a (two byte?) integer
+REM and K is the iteration variable
+K%=1
+:
+REM start producing digits!
+PROCset(S%, 0)
+REPEAT
+:
+REM compute N/K and add/sub the quotient into S
+REM we adjust the denominator as needed
+
+PROCdivaddsub(N%, 4, K%, S%, 1)
+K%=K%+3
+PROCdivaddsub(N%, 2, K%, S%, -1)
+K%=K%+1
+PROCdivaddsub(N%, 1, K%, S%, -1)
+K%=K%+1
+PROCdivaddsub(N%, 1, K%, S%, -1)
+K%=K%+3
+:
+REM S is updated, now take a digit
+:
+G%=FNextract(S%)
+PRINT !S%/U%" "CHR$(48+G%)
+:
+PROCmask(S%) : REM remove that digit from S
+PROCx10(S%)
+:
+REM now re-scale the numerator
+PROCrescale(N%)
+:
+UNTIL K%>72 : REM about 8 good digits from 8bit basic
+:
+PRINT (TIME-T) DIV 100"s"
+END
+:
+DEF PROCset(A%, N%)
+!A%=N%*U%
+ENDPROC
+:
+DEF PROCcopy(T%, N%)
+!T%=!N%
+ENDPROC
+:
+DEF PROCdivaddsub(N%, prescale, K%, S%, add)
+REM N% is a bignum
+REM prescale is a 1, 2 or 4 multiplier
+REM K% is an int (presently is pre-scaled)
+REM S% is a bignum
+REM add is 1 for addition and -1 for subtraction
+:
+REM example worked division
+REM &3D0900 / &24 = &1B207
+REM &12 too small (15 bits shift)
+REM &24 still smaller (16 bits shift)
+REM &48 too big (so backtrack)
+:
+REM T is a bignum temporary to be reduced to zero
+REM which we might be able to do without
+PROCcopy(T%, N%)
+REM scaling is just a shift which we can finesse
+:
+REM probably good to keep track of top non-zero byte
+REM we'd like to line up rapidly at the start of play
+:
+REM we will need to shift the denominator
+REM but that's not destructive really
+REM just a sliding three byte(?) window
+D%=K% : REM using a temporary for convenience
+:
+REM align the denominator for the subtraction
+REM I is the bit we're going to set, or add in
+REM I is an LSB marker, lines up with LSB of D
+I%=1
+REPEAT I%=I%*2:D%=D%*2:UNTIL D%>!T%
+:
+REM backtrack because we overdid it by one shift
+I%=I% DIV 2: D%=D% DIV 2 : REM just shifts
+:
+REM adjust our result number for scale
+REM cheapest way to account for different numerators
+I%=I% * prescale
+:
+REM division by repeated shift and subtract
+REM accumulating each bit into our sum as we go
+REM sum is a bignum but carries will be limited
+REM so we'll propagate only as many as needed
+REM better to accumulate a byte of bits and add
+REM them all at once
+:
+REM here D moves to the right getting smaller
+REM but maybe moving the bits of T left might win
+REM we'd fill in leftmost byte from N
+REM every 8 shifts
+:
+REPEAT
+IF !T%>=D% THEN !T%=!T%-D%: !S%=!S%+add*I%
+I%=I% DIV 2: D%=D% DIV 2
+UNTIL I%=0
+ENDPROC
+:
+DEF PROCrescale(N%)
+!N%=10*(!N% DIV 16)
+ENDPROC
+:
+DEF PROCaddinto(N%, M%)
+!N%=!N%+!M%
+ENDPROC
+:
+DEF FNextract(S%)
+REM a sanity check is that this is 9 at most
+=!S% DIV U%     : REM decimal digit, just a shift
+:
+DEF PROCmask(S%)
+!S%=!S% AND (U%-1) : REM mask, to clear that digit
+ENDPROC
+:
+DEF PROCx10(S%)
+!S%=!S%*10  : REM bignum multiply by small number
+ENDPROC
+:
+DEF PROCdebug(N%,K%)
+REM for debug, show the N and D
+at%=@%
+@%=&90A:PRINT !N%/U%,K%,;
+@%=at%
+ENDPROC
