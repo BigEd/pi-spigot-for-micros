@@ -116,15 +116,13 @@ D%=K% : REM using a temporary for convenience
 REM align the denominator for the subtraction
 REM I is the bit we're going to set, or add in
 REM I is an LSB marker, lines up with LSB of D
-I%=1
+REM pre-scale accounts for different numerators
+I%=prescale
+:
 REPEAT I%=I%*2:D%=D%*2:UNTIL D%>!T%
 :
 REM backtrack because we overdid it by one shift
 I%=I% DIV 2: D%=D% DIV 2 : REM just shifts
-:
-REM adjust our result number for scale
-REM cheapest way to account for different numerators
-I%=I% * prescale
 :
 REM division by repeated shift and subtract
 REM accumulating each bit into our sum as we go
