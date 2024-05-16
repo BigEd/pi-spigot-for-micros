@@ -35,7 +35,7 @@ REM one byte, the first byte, is the integer part
 Scale=2^24 : REM the scaled unit, 1.0, a global
 REM byte-aligning U might be simplest
 :
-big=8
+big=4
 DIM SumP big : REM our bignum series accumulator
 DIM NumeratorP big : REM bignum numerator
 DIM TempP big : REM temporary bignum for division
@@ -81,14 +81,20 @@ END
 :
 REM --------------------------------------------------
 :
-DEF PROCset(BignumP, N)
-!BignumP=N*Scale
+DEF PROCset(BignumP, C)
+REM C is a tiny constant - one byte
+FOR I%=0 TO big-1
+  BignumP?I%=0
+NEXT
+BignumP?(big-1)=C
 ENDPROC
 :
 REM --------------------------------------------------
 :
 DEF PROCcopy(TempP, NumeratorP)
-!TempP=!NumeratorP
+FOR I%=0 TO big-1
+  TempP?I%=NumeratorP?I%
+NEXT
 ENDPROC
 :
 REM --------------------------------------------------
