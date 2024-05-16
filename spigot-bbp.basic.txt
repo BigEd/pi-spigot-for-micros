@@ -72,9 +72,6 @@ t0=TIME: @%=&2090C: REM MODE 0
 REM bignums are a list of bytes - just 4 at present
 REM one byte, the first byte, is the integer part
 :
-Scale=2^24 : REM the scaled unit, 1.0, a global
-REM byte-aligning U might be simplest
-:
 big=4
 DIM SumP big : REM our bignum series accumulator
 DIM NumeratorP big : REM bignum numerator
@@ -105,8 +102,7 @@ K%=K%+8
 :
 REM S is updated, now take a digit
 :
-G%=FNextract(SumP)
-PRINT !SumP/Scale" "CHR$(48+G%)
+PRINT CHR$(48+FNextract(SumP))
 :
 PROCmask(SumP) : REM remove that digit from S
 PROCx10(SumP)
@@ -204,14 +200,14 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCadd(Bignum, N%)
-  !Bignum = !Bignum + N%
+DEF PROCadd(BignumP, N%)
+  !BignumP = !BignumP + N%
 ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCsub(Bignum, N%)
-  !Bignum = !Bignum - N%
+DEF PROCsub(BignumP, N%)
+  !BignumP = !BignumP - N%
 ENDPROC
 :
 REM --------------------------------------------------
