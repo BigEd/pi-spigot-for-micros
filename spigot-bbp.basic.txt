@@ -94,13 +94,13 @@ REPEAT
 REM compute N/K and add/sub the quotient into S
 REM we adjust the denominator as needed
 T=K%+1
-PROCdivaddsub(NumeratorP, T, SumP, 1)
+PROCdivaddsub(NumeratorP, T, SumP, "add")
 T=T+K%+7
-PROCdivaddsub(NumeratorP, T, SumP, -1)
+PROCdivaddsub(NumeratorP, T, SumP, "sub")
 T=T+2*K%+12
-PROCdivaddsub(NumeratorP, T, SumP, -1)
+PROCdivaddsub(NumeratorP, T, SumP, "sub")
 T=T+4
-PROCdivaddsub(NumeratorP, T, SumP, -1)
+PROCdivaddsub(NumeratorP, T, SumP, "sub")
 K%=K%+8
 :
 REM S is updated, now take a digit
@@ -178,11 +178,11 @@ REM every 8 shifts
 REM NumeratorP is a bignum
 REM K% is an integer, the number to divide by
 REM SumP is a bignum to add or subtract into
-REM add is 1 for addition and -1 for subtraction
+REM op$ is "add" or "sub"
 :
 REM --------------------------------------------------
 :
-DEF PROCdivaddsub(NumeratorP, K%, SumP, add)
+DEF PROCdivaddsub(NumeratorP, K%, SumP, op$)
 :
 PROCcopy(TempP, NumeratorP)
 D%=K%
@@ -192,8 +192,10 @@ REPEAT I%=I%*2:D%=D%*2:UNTIL NOT FNcmp(TempP,D%)
 I%=I% DIV 2: D%=D% DIV 2
 :
 REPEAT
-  IF FNcmp(TempP,D%) THEN PROCaddsub(SumP, add, I%)
-  IF FNcmp(TempP,D%) THEN PROCaddsub(TempP, -1, D%)
+  cmp=FNcmp(TempP,D%)
+  IF cmp THEN IF op$="add" PROCadd(SumP, I%)
+  IF cmp THEN IF op$="sub" PROCsub(SumP, I%)
+  IF cmp THEN PROCsub(TempP, D%)
   I%=I% DIV 2
   D%=D% DIV 2
 UNTIL I%=0
@@ -202,8 +204,14 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCaddsub(Bignum, add, N%)
-  !Bignum = !Bignum + add*N%
+DEF PROCadd(Bignum, N%)
+  !Bignum = !Bignum + N%
+ENDPROC
+:
+REM --------------------------------------------------
+:
+DEF PROCsub(Bignum, N%)
+  !Bignum = !Bignum - N%
 ENDPROC
 :
 REM --------------------------------------------------
