@@ -15,17 +15,17 @@ REM it probably shouldn't be
 :
 REM we're proceeding like this
 REM   S=0:N=4:K=0
-REM   REPEAT
+REM   FOR digit=0 TO 19
 REM     S=S+N/(K+1)
 REM     S=S-N/(2*(K+4))
 REM     S=S-N/(4*(K+5))
 REM     S=S-N/(4*(K+6))
-REM     PRINT I%," ";S;" digit ";INTS
+REM     PRINT digit," ";S;" digit ";INTS
 REM     S=S-INTS
 REM     S=S*10
 REM     N=N*10/16
 REM     K=K+8
-REM   UNTIL K>19
+REM   NEXT
 :
 T=TIME: @%=&2090C: REM MODE 0
 :
