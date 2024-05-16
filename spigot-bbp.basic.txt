@@ -82,7 +82,8 @@ END
 REM --------------------------------------------------
 :
 DEF PROCset(BignumP, C)
-REM C is a tiny constant - one byte
+REM C is a tiny integer - one byte
+REM integer end of our bignum is at the far end
 FOR I%=0 TO big-1
   BignumP?I%=0
 NEXT
@@ -92,6 +93,7 @@ ENDPROC
 REM --------------------------------------------------
 :
 DEF PROCcopy(TempP, NumeratorP)
+REM used once, could be inlined
 FOR I%=0 TO big-1
   TempP?I%=NumeratorP?I%
 NEXT
@@ -162,12 +164,6 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCaddinto(NumeratorP, M%)
-!NumeratorP=!NumeratorP+!M%
-ENDPROC
-:
-REM --------------------------------------------------
-:
 DEF FNextract(SumP)
 REM a sanity check is that this is 9 at most
 =!SumP DIV Scale     : REM decimal digit, just a shift
@@ -175,13 +171,25 @@ REM a sanity check is that this is 9 at most
 REM --------------------------------------------------
 :
 DEF PROCmask(SumP)
-!SumP=!SumP AND (Scale-1) : REM mask, to clear that digit
+REM set integer part of the bignum to zero
+I%=big-1
+SumP?I%=0
 ENDPROC
 :
 REM --------------------------------------------------
 :
 DEF PROCx10(SumP)
-!SumP=!SumP*10  : REM bignum multiply by small number
+  REM bignum multiply by small number
+  REM two byte result needs to be carried
+  LOCAL carry, temp
+  carry=0
+  FOR I%=0 TO big-1
+    temp=(SumP?I%)*10 + carry
+    SumP?I% = temp AND 255
+    carry = temp DIV 256
+  NEXT
+ENDPROC
+
 ENDPROC
 :
 REM --------------------------------------------------
