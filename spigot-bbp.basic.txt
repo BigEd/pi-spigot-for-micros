@@ -1,6 +1,10 @@
 REM BBP pi calculation like youtu.be/SPTzzSuBFlc
 :
 REM todo convert bignum operators to byte-by-byte
+REM todo need byte-by-byte shifts not bit-by-bit in division
+REM todo need a byte pointer into the middle of the bignum
+REM todo the initial alignment of divisor can be simple
+REM need a 'small' variable to count the size of K
 :
 REM in distant future the two bignums are opposite
 REM endianness because they can then share memory
