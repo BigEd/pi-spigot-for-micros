@@ -141,32 +141,27 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCdivaddsub(NumeratorP, K%, SumP, add)
-REM NumeratorP is a bignum
-REM K% is an integer, the number to divide by
-REM SumP is a bignum to add or subtract into
-REM add is 1 for addition and -1 for subtraction
-:
+REM notes on division
+REM ideally we use no bignum temporaries
+REM but presently we use two
+REM 
 REM TempP is a bignum temporary to be reduced to zero
 REM which we might be able to do without
-PROCcopy(TempP, NumeratorP)
 :
-REM probably good to keep track of top non-zero byte
+REM maybe good to keep track of top non-zero byte
+REM of the denominator
 REM we'd like to line up rapidly at the start of play
+REM expect that's just a small constant piece of work
 :
 REM we will need to shift the denominator
 REM but that's not destructive really
 REM just a sliding three byte(?) window
-REM using a temporary for convenience
-D%=K%
+REM using a temporary D% for convenience
 :
-REM align the denominator for the subtraction
+REM We align the denominator for the subtraction
 REM I is the bit we're going to set, or add in
 REM I is an LSB marker, lines up with LSB of D
-REM we'll overdo it then backtrack
-I%=1
-REPEAT I%=I%*2:D%=D%*2:UNTIL D%>!TempP
-I%=I% DIV 2: D%=D% DIV 2
+REM we over shift and then unshift to correct
 :
 REM division by repeated shift and subtract
 REM accumulating each bit into our sum as we go
@@ -179,6 +174,22 @@ REM here D moves to the right getting smaller
 REM but maybe moving the bits of T left might win
 REM we'd fill in leftmost byte from N
 REM every 8 shifts
+:
+REM NumeratorP is a bignum
+REM K% is an integer, the number to divide by
+REM SumP is a bignum to add or subtract into
+REM add is 1 for addition and -1 for subtraction
+:
+REM --------------------------------------------------
+:
+DEF PROCdivaddsub(NumeratorP, K%, SumP, add)
+:
+PROCcopy(TempP, NumeratorP)
+D%=K%
+:
+I%=1
+REPEAT I%=I%*2:D%=D%*2:UNTIL D%>!TempP
+I%=I% DIV 2: D%=D% DIV 2
 :
 REPEAT
   IF !TempP >= D% THEN !TempP=!TempP-D%: !SumP=!SumP+add*I%
