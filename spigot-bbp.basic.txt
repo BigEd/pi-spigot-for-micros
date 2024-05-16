@@ -158,8 +158,18 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCrescale(NumeratorP)
-!NumeratorP=10*(!NumeratorP DIV 16)
+DEF PROCrescale(BignumP)
+REM we multiply by 10/16 which is less than one
+REM possibly could shortcut this
+REM but taking a brute force approach for now
+PROCx10(BignumP)
+LOCAL carry, temp
+carry=0
+FOR I%=big-1 TO 0 STEP -1
+  temp=BignumP?I%
+  BignumP?I% = (BignumP?I%) DIV 16 + (carry * 16)
+  carry = temp AND 15
+NEXT
 ENDPROC
 :
 REM --------------------------------------------------
@@ -178,25 +188,14 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCx10(SumP)
+DEF PROCx10(BignumP)
   REM bignum multiply by small number
-  REM two byte result needs to be carried
+  REM two byte result from each digit demands a carry
   LOCAL carry, temp
   carry=0
   FOR I%=0 TO big-1
-    temp=(SumP?I%)*10 + carry
-    SumP?I% = temp AND 255
+    temp=(BignumP?I%)*10 + carry
+    BignumP?I% = temp AND 255
     carry = temp DIV 256
   NEXT
-ENDPROC
-
-ENDPROC
-:
-REM --------------------------------------------------
-:
-DEF PROCdebug(NumeratorP,K%)
-REM for debug, show the N and D
-at%=@%
-@%=&90A:PRINT !NumeratorP/Scale,K%,;
-@%=at%
 ENDPROC
