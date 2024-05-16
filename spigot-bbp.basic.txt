@@ -27,6 +27,46 @@ REM     N=N*10/16
 REM     K=K+8
 REM   NEXT
 :
+REM equivalently and possibly preferable
+REM   S=0:N=4
+REM   K1=1
+REM   K2=8
+REM   K3=20
+REM   K4=24
+REM   FOR digit=0 TO 19
+REM     S=S+N/K1
+REM     S=S-N/K2
+REM     S=S-N/K3
+REM     S=S-N/K4
+REM     PRINT digit," ";S;" digit ";INTS
+REM     S=S-INTS
+REM     S=S*10
+REM     N=N*10/16
+REM     K1=K1+8
+REM     K2=K2+16
+REM     K3=K3+32
+REM     K4=K4+32
+REM   NEXT
+:
+REM equivalently and possibly preferable
+REM   S=0:N=4
+REM   K=0
+REM   FOR digit=0 TO 19
+REM     T=K+1
+REM     S=S+N/T
+REM     T=T+K+7
+REM     S=S-N/T
+REM     T=T+2*K+12
+REM     S=S-N/T
+REM     T=T+4
+REM     S=S-N/T
+REM     PRINT digit," ";S;" digit ";INTS
+REM     S=S-INTS
+REM     S=S*10
+REM     N=N*10/16
+REM     K=K+8
+REM   NEXT
+:
 T=TIME: @%=&2090C: REM MODE 0
 :
 REM bignums are a list of bytes - just 4 at present
@@ -40,10 +80,10 @@ DIM SumP big : REM our bignum series accumulator
 DIM NumeratorP big : REM bignum numerator
 DIM TempP big : REM temporary bignum for division
 :
-REM our numerator is rescaled by 10/16 each digit
+REM our numerator will be rescaled by 10/16 each digit
 PROCset(NumeratorP, 1)
 :
-REM the denominator is a (two byte?) integer
+REM the denominator is a (two or three byte) integer
 REM and K is the iteration variable
 K%=1
 :
@@ -104,20 +144,14 @@ REM --------------------------------------------------
 DEF PROCdivaddsub(NumeratorP, prescale, K%, SumP, add)
 REM NumeratorP is a bignum
 REM prescale is a 1, 2 or 4 multiplier
-REM K% is an int (presently is pre-scaled)
-REM SumP is a bignum
+REM K% is an integer, the number to divide by
+REM SumP is a bignum to add or subtract into
 REM add is 1 for addition and -1 for subtraction
 :
-REM example worked division
-REM &3D0900 / &24 = &1B207
-REM &12 too small (15 bits shift)
-REM &24 still smaller (16 bits shift)
-REM &48 too big (so backtrack)
-:
-REM T is a bignum temporary to be reduced to zero
+REM TempP is a bignum temporary to be reduced to zero
 REM which we might be able to do without
 PROCcopy(TempP, NumeratorP)
-REM scaling is just a shift which we can finesse
+REM prescale is just a shift which we can finesse
 :
 REM probably good to keep track of top non-zero byte
 REM we'd like to line up rapidly at the start of play
@@ -125,7 +159,8 @@ REM we'd like to line up rapidly at the start of play
 REM we will need to shift the denominator
 REM but that's not destructive really
 REM just a sliding three byte(?) window
-D%=K% : REM using a temporary for convenience
+REM using a temporary for convenience
+D%=K%
 :
 REM align the denominator for the subtraction
 REM I is the bit we're going to set, or add in
@@ -151,9 +186,10 @@ REM we'd fill in leftmost byte from N
 REM every 8 shifts
 :
 REPEAT
-IF !TempP>=D% THEN !TempP=!TempP-D%: !SumP=!SumP+add*I%
-I%=I% DIV 2: D%=D% DIV 2
-UNTIL I%=0
+  IF !TempP >= D% THEN !TempP=!TempP-D%: !SumP=!SumP+add*I%
+  I%=I% DIV 2
+  D%=D% DIV 2
+  UNTIL I%=0
 ENDPROC
 :
 REM --------------------------------------------------
