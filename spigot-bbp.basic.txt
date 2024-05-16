@@ -174,9 +174,9 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF FNextract(SumP)
+DEF FNextract(BignumP)
 REM a sanity check is that this is 9 at most
-=!SumP DIV Scale     : REM decimal digit, just a shift
+=(BignumP?(big-1)) : REM decimal digit, just the top byte
 :
 REM --------------------------------------------------
 :
