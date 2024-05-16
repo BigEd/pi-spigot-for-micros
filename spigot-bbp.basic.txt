@@ -67,7 +67,7 @@ REM     N=N*10/16
 REM     K=K+8
 REM   NEXT
 :
-T=TIME: @%=&2090C: REM MODE 0
+t0=TIME: @%=&2090C: REM MODE 0
 :
 REM bignums are a list of bytes - just 4 at present
 REM one byte, the first byte, is the integer part
@@ -81,11 +81,11 @@ DIM NumeratorP big : REM bignum numerator
 DIM TempP big : REM temporary bignum for division
 :
 REM our numerator will be rescaled by 10/16 each digit
-PROCset(NumeratorP, 1)
+PROCset(NumeratorP, 4)
 :
 REM the denominator is a (two or three byte) integer
 REM and K is the iteration variable
-K%=1
+K%=0
 :
 REM start producing digits!
 PROCset(SumP, 0)
@@ -93,15 +93,15 @@ REPEAT
 :
 REM compute N/K and add/sub the quotient into S
 REM we adjust the denominator as needed
-
-PROCdivaddsub(NumeratorP, 4, K%, SumP, 1)
-K%=K%+3
-PROCdivaddsub(NumeratorP, 2, K%, SumP, -1)
-K%=K%+1
-PROCdivaddsub(NumeratorP, 1, K%, SumP, -1)
-K%=K%+1
-PROCdivaddsub(NumeratorP, 1, K%, SumP, -1)
-K%=K%+3
+T=K%+1
+PROCdivaddsub(NumeratorP, T, SumP, 1)
+T=T+K%+7
+PROCdivaddsub(NumeratorP, T, SumP, -1)
+T=T+2*K%+12
+PROCdivaddsub(NumeratorP, T, SumP, -1)
+T=T+4
+PROCdivaddsub(NumeratorP, T, SumP, -1)
+K%=K%+8
 :
 REM S is updated, now take a digit
 :
@@ -116,7 +116,7 @@ PROCrescale(NumeratorP)
 :
 UNTIL K%>72 : REM about 8 good digits from 8bit basic
 :
-PRINT (TIME-T) DIV 100"s"
+PRINT (TIME-t0) DIV 100"s"
 END
 :
 REM --------------------------------------------------
@@ -141,9 +141,8 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCdivaddsub(NumeratorP, prescale, K%, SumP, add)
+DEF PROCdivaddsub(NumeratorP, K%, SumP, add)
 REM NumeratorP is a bignum
-REM prescale is a 1, 2 or 4 multiplier
 REM K% is an integer, the number to divide by
 REM SumP is a bignum to add or subtract into
 REM add is 1 for addition and -1 for subtraction
@@ -151,7 +150,6 @@ REM add is 1 for addition and -1 for subtraction
 REM TempP is a bignum temporary to be reduced to zero
 REM which we might be able to do without
 PROCcopy(TempP, NumeratorP)
-REM prescale is just a shift which we can finesse
 :
 REM probably good to keep track of top non-zero byte
 REM we'd like to line up rapidly at the start of play
@@ -165,13 +163,10 @@ D%=K%
 REM align the denominator for the subtraction
 REM I is the bit we're going to set, or add in
 REM I is an LSB marker, lines up with LSB of D
-REM pre-scale accounts for different numerators
-I%=prescale
-:
+REM we'll overdo it then backtrack
+I%=1
 REPEAT I%=I%*2:D%=D%*2:UNTIL D%>!TempP
-:
-REM backtrack because we overdid it by one shift
-I%=I% DIV 2: D%=D% DIV 2 : REM just shifts
+I%=I% DIV 2: D%=D% DIV 2
 :
 REM division by repeated shift and subtract
 REM accumulating each bit into our sum as we go
