@@ -188,15 +188,29 @@ PROCcopy(TempP, NumeratorP)
 D%=K%
 :
 I%=1
-REPEAT I%=I%*2:D%=D%*2:UNTIL D%>!TempP
+REPEAT I%=I%*2:D%=D%*2:UNTIL NOT FNcmp(TempP,D%)
 I%=I% DIV 2: D%=D% DIV 2
 :
 REPEAT
-  IF !TempP >= D% THEN !TempP=!TempP-D%: !SumP=!SumP+add*I%
+  IF FNcmp(TempP,D%) THEN PROCaddsub(SumP, add, I%)
+  IF FNcmp(TempP,D%) THEN PROCaddsub(TempP, -1, D%)
   I%=I% DIV 2
   D%=D% DIV 2
-  UNTIL I%=0
+UNTIL I%=0
+:
 ENDPROC
+:
+REM --------------------------------------------------
+:
+DEF PROCaddsub(Bignum, add, N%)
+  !Bignum = !Bignum + add*N%
+ENDPROC
+:
+REM --------------------------------------------------
+:
+REM compare bignum with integer presuming some alignment
+DEF FNcmp(BignumP, D%)
+= (!BignumP >= D%)
 :
 REM --------------------------------------------------
 :
@@ -218,12 +232,14 @@ REM --------------------------------------------------
 :
 DEF FNextract(BignumP)
 REM a sanity check is that this is 9 at most
+REM assumes bignum has 1 byte before the binary point
 =(BignumP?(big-1)) : REM decimal digit, just the top byte
 :
 REM --------------------------------------------------
 :
 DEF PROCmask(SumP)
 REM set integer part of the bignum to zero
+REM assumes bignum has 1 byte before the binary point
 I%=big-1
 SumP?I%=0
 ENDPROC
