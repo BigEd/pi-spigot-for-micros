@@ -185,40 +185,42 @@ REM --------------------------------------------------
 DEF PROCdivaddsub(NumeratorP, K%, SumP, op$)
 :
 PROCcopy(TempP, NumeratorP)
-D%=K%
+D%=K% : REM presently D in fact doesn't change
 :
-I%=1
-REPEAT I%=I%*2:D%=D%*2:UNTIL NOT FNcmp(TempP,D%)
-I%=I% DIV 2: D%=D% DIV 2
+S%=0: REM S for shift (an exponent)
+REPEAT S%=S%+1:UNTIL NOT FNcmp(TempP,D%,S%)
+S%=S%-1
 :
 REPEAT
-  cmp=FNcmp(TempP,D%)
-  IF cmp THEN IF op$="add" PROCadd(SumP, I%)
-  IF cmp THEN IF op$="sub" PROCsub(SumP, I%)
-  IF cmp THEN PROCsub(TempP, D%)
-  I%=I% DIV 2
-  D%=D% DIV 2
-UNTIL I%=0
+  cmp=FNcmp(TempP,D%,S%)
+  IF cmp THEN IF op$="add" PROCadd(SumP, 1, S%)
+  IF cmp THEN IF op$="sub" PROCsub(SumP, 1, S%)
+  IF cmp THEN PROCsub(TempP, D%, S%)
+  S%=S%-1
+UNTIL S%<0
 :
 ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCadd(BignumP, N%)
+DEF PROCadd(BignumP, N%, S%)
+  N%=N% * 2^S%
   !BignumP = !BignumP + N%
 ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCsub(BignumP, N%)
+DEF PROCsub(BignumP, N%, S%)
+  N%=N% * 2^S%
   !BignumP = !BignumP - N%
 ENDPROC
 :
 REM --------------------------------------------------
 :
 REM compare bignum with integer presuming some alignment
-DEF FNcmp(BignumP, D%)
-= (!BignumP >= D%)
+DEF FNcmp(BignumP, N%, S%)
+  N%=N% * 2^S%
+= (!BignumP >= N%)
 :
 REM --------------------------------------------------
 :
