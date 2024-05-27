@@ -80,9 +80,13 @@ digits=8
 big=((digits*5) DIV 12)+1
 PRINT "Digits = ";digits
 PRINT "   Big = ";big;" bytes"
-DIM SumP big : REM our bignum series accumulator
-DIM NumeratorP big : REM bignum numerator
-DIM TempP big : REM temporary bignum for division
+:
+REM pad bignums to ensure 4-byte comparison at the end to see zeros
+pad=4
+:
+DIM SumP       big + pad: REM our bignum series accumulator
+DIM NumeratorP big + pad: REM bignum numerator
+DIM TempP      big + pad: REM temporary bignum for division
 :
 REM our numerator will be rescaled by 10/16 each digit
 PROCset(NumeratorP, 4)
@@ -193,6 +197,7 @@ D%=K% : REM presently D in fact doesn't change
 S%=0: REM S for shift (an exponent)
 REPEAT S%=S%+1:UNTIL NOT FNcmp(TempP,D%,S%)
 S%=S%-1
+IF S%>=8*big:PRINT "S too large"; S%:STOP
 :
 REPEAT
   cmp=FNcmp(TempP,D%,S%)
@@ -239,19 +244,22 @@ ENDPROC
 REM --------------------------------------------------
 :
 REM compare bignum with integer presuming some alignment
+REM returns TRUE if bignum>=N%<<S%
 DEF FNcmp(BignumP, N%, S%)
-  LOCAL I%,carry,temp
+  LOCAL I%,J%
   N%=N%*2^(S% MOD 8)
   I%=S% DIV 8
-  carry=0
+  REM work out MSB of bignum
+  J%=big
   REPEAT
-    temp=512 + BignumP?I% - (N% AND 255) - carry
-    REM BignumP?I% = temp AND 255
-    carry = (temp DIV 256) AND 1
-    N%=N% DIV 256
-    I%=I%+1
-  UNTIL I%=big
-= (carry=0)
+    J%=J%-1
+  UNTIL J%<0 OR BignumP?J%>0
+  REM Case 1: bignum has non-zero elements beyond N, so must be > N%
+  IF J%>=I%+4 =TRUE
+  REM Case 2: bignum=0 so return answer based on N% only
+  IF J%<0 =(N%=0)
+  REM Case 3: return result based on a comparison
+=(BignumP!I%>=N%)
 :
 REM --------------------------------------------------
 :
