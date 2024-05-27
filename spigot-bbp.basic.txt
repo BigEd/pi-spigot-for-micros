@@ -144,7 +144,7 @@ REM --------------------------------------------------
 REM notes on division
 REM ideally we use no bignum temporaries
 REM but presently we use two
-REM 
+REM
 REM TempP is a bignum temporary to be reduced to zero
 REM which we might be able to do without
 :
@@ -204,23 +204,51 @@ ENDPROC
 REM --------------------------------------------------
 :
 DEF PROCadd(BignumP, N%, S%)
-  N%=N% * 2^S%
-  !BignumP = !BignumP + N%
+  LOCAL I%,carry,temp
+  N%=N%*2^(S% MOD 8)
+  I%=S% DIV 8
+  carry=0
+  REPEAT
+    temp=BignumP?I% + (N% AND 255) + carry
+    BignumP?I% = temp AND 255
+    carry = temp DIV 256
+    N%=N% DIV 256
+    I%=I%+1
+  UNTIL I%=big OR (N%=0 AND carry=0)
 ENDPROC
 :
 REM --------------------------------------------------
 :
 DEF PROCsub(BignumP, N%, S%)
-  N%=N% * 2^S%
-  !BignumP = !BignumP - N%
+  LOCAL I%,carry,temp
+  N%=N%*2^(S% MOD 8)
+  I%=S% DIV 8
+  carry=0
+  REPEAT
+    temp=512 + BignumP?I% - (N% AND 255) - carry
+    BignumP?I% = temp AND 255
+    carry = (temp DIV 256) AND 1
+    N%=N% DIV 256
+    I%=I%+1
+  UNTIL I%=big OR (N%=0 AND carry=0)
 ENDPROC
 :
 REM --------------------------------------------------
 :
 REM compare bignum with integer presuming some alignment
 DEF FNcmp(BignumP, N%, S%)
-  N%=N% * 2^S%
-= (!BignumP >= N%)
+  LOCAL I%,carry,temp
+  N%=N%*2^(S% MOD 8)
+  I%=S% DIV 8
+  carry=0
+  REPEAT
+    temp=512 + BignumP?I% - (N% AND 255) - carry
+    REM BignumP?I% = temp AND 255
+    carry = (temp DIV 256) AND 1
+    N%=N% DIV 256
+    I%=I%+1
+  UNTIL I%=big
+= (carry=0)
 :
 REM --------------------------------------------------
 :
