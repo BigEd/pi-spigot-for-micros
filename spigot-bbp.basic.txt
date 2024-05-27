@@ -71,13 +71,15 @@ REM     N=N*10/16
 REM     K=K+8
 REM   NEXT
 :
-t0=TIME: @%=&2090C: REM MODE 0
+t0=TIME: REM MODE 0
 :
 REM bignums are a list of bytes - just 4 at present
 REM one byte, the first byte, is the integer part
 :
-digits=20
-big=(digits*5+11) DIV 12
+digits=8
+big=((digits*5) DIV 12)+1
+PRINT "Digits = ";digits
+PRINT "   Big = ";big;" bytes"
 DIM SumP big : REM our bignum series accumulator
 DIM NumeratorP big : REM bignum numerator
 DIM TempP big : REM temporary bignum for division
