@@ -76,7 +76,8 @@ t0=TIME: @%=&2090C: REM MODE 0
 REM bignums are a list of bytes - just 4 at present
 REM one byte, the first byte, is the integer part
 :
-big=4
+digits=20
+big=(digits*5+11) DIV 12
 DIM SumP big : REM our bignum series accumulator
 DIM NumeratorP big : REM bignum numerator
 DIM TempP big : REM temporary bignum for division
@@ -106,7 +107,7 @@ K%=K%+8
 :
 REM S is updated, now take a digit
 :
-PRINT CHR$(48+FNextract(SumP))
+PRINT CHR$(48+FNextract(SumP));
 :
 PROCmask(SumP) : REM remove that digit from S
 PROCx10(SumP)
@@ -114,9 +115,9 @@ PROCx10(SumP)
 REM now re-scale the numerator
 PROCrescale(NumeratorP)
 :
-UNTIL K%>72 : REM about 8 good digits from 8bit basic
+UNTIL K%>=8*digits : REM about 8 good digits from 8bit basic
 :
-PRINT (TIME-t0) DIV 100"s"
+PRINT '(TIME-t0) DIV 100"s"
 END
 :
 REM --------------------------------------------------
