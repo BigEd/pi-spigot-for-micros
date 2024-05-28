@@ -97,40 +97,48 @@ REM --------------------------------------------------
 :
 DEF PROCdivaddsub(NumeratorP, K%, SumP, op$)
 :
+LOCAL S%,T%
 PROCcopy(TempP, NumeratorP)
 D%=K% : REM presently D in fact doesn't change
 :
-S%=8*(big-1) : REM S for shift (an exponent)
-:
-REPEAT
-  cmp=FNcmp(TempP,D%,S%)
-  IF cmp THEN IF op$="add" PROCadd(SumP, 1, S%)
-  IF cmp THEN IF op$="sub" PROCsub(SumP, 1, S%)
-  IF cmp THEN PROCsub(TempP, D%, S%)
-  S%=S%-1
-UNTIL S%<(8*A%)
-:
+FOR T%=big-2 TO A% STEP -1
+  byte%=0
+  FOR S%=8*T%+7 TO 8*T% STEP -1
+    byte%=byte%*2
+    IF FNcmp(TempP,D%,S%) PROCsubbit(TempP, D%, S%):byte%=byte%+1
+  NEXT
+  IF byte%<>0: IF op$="add" PROCaddbyte(SumP, byte%, T%)
+  IF byte%<>0: IF op$="sub" PROCsubbyte(SumP, byte%, T%)
+NEXT
 ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCadd(BignumP, N%, S%)
-  LOCAL I%,carry,temp
-  N%=N%*2^(S% MOD 8)
-  I%=S% DIV 8
-  carry=0
+DEF PROCaddbyte(BignumP, N%, I%)
+  LOCAL temp
   REPEAT
-    temp=BignumP?I% + (N% AND 255) + carry
+    temp=BignumP?I% + N%
     BignumP?I% = temp AND 255
-    carry = temp DIV 256
-    N%=N% DIV 256
+    IF (temp AND 256) N%=1 ELSE N%=0
     I%=I%+1
-  UNTIL I%=big OR (N%=0 AND carry=0)
+  UNTIL I%=big OR N%=0
 ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCsub(BignumP, N%, S%)
+DEF PROCsubbyte(BignumP, N%, I%)
+  LOCAL temp
+  REPEAT
+    temp=BignumP?I% - N%
+    BignumP?I% = temp AND 255
+    IF (temp AND 256) N%=1 ELSE N%=0
+    I%=I%+1
+  UNTIL I%=big OR N%=0
+ENDPROC
+:
+REM --------------------------------------------------
+:
+DEF PROCsubbit(BignumP, N%, S%)
   LOCAL I%,carry,temp
   N%=N%*2^(S% MOD 8)
   I%=S% DIV 8
