@@ -259,6 +259,7 @@ DEF FNcmp(BignumP, N%, S%)
   REM Case 2: bignum=0 so return answer based on N% only
   IF J%<0 =(N%=0)
   REM Case 3: return result based on a comparison
+  IF BignumP!I%<0: =TRUE
 =(BignumP!I%>=N%)
 :
 REM --------------------------------------------------
