@@ -1,6 +1,6 @@
 REM BBP pi calculation like youtu.be/SPTzzSuBFlc
 :
-t0=TIME: REM MODE 0
+t0=TIME
 :
 REM bignums are a list of bytes, LSB first (lowest address)
 REM one byte, the first byte, is the integer part
@@ -25,13 +25,15 @@ REM and K is the iteration variable
 K%=0
 :
 REM start producing digits!
-PROCset(SumP, 0)
+PROCset(SumP, 4)
+first=TRUE
 REPEAT
 :
 REM compute N/K and add/sub the quotient into S
 REM we adjust the denominator as needed
 T=K%+1
-PROCdivaddsub(NumeratorP, T, SumP, "add")
+IF NOT first PROCdivaddsub(NumeratorP, T, SumP, "add")
+first=FALSE
 T=T+K%+7
 PROCdivaddsub(NumeratorP, T, SumP, "sub")
 T=T+2*K%+12
@@ -89,10 +91,7 @@ DEF PROCdivaddsub(NumeratorP, K%, SumP, op$)
 PROCcopy(TempP, NumeratorP)
 D%=K% : REM presently D in fact doesn't change
 :
-S%=0: REM S for shift (an exponent)
-REPEAT S%=S%+1:UNTIL NOT FNcmp(TempP,D%,S%)
-S%=S%-1
-IF S%>=8*big:PRINT "S too large"; S%:STOP
+S%=8*(big-1) : REM S for shift (an exponent)
 :
 REPEAT
   cmp=FNcmp(TempP,D%,S%)
