@@ -1,79 +1,8 @@
 REM BBP pi calculation like youtu.be/SPTzzSuBFlc
 :
-REM todo convert bignum operators to byte-by-byte
-REM todo need byte-by-byte shifts not bit-by-bit in division
-REM todo need a byte pointer into the middle of the bignum
-REM todo the initial alignment of divisor can be simple
-REM need a 'small' variable to count the size of K
-:
-REM in distant future the two bignums are opposite
-REM endianness because they can then share memory
-:
-REM using four divisions for small denominators
-REM the numerator is a bignum
-REM the denominator is probably two bytes
-:
-REM the temporary T is a bignum
-REM but as all we do is shift a two byte window
-REM it probably shouldn't be
-:
-REM we're proceeding like this
-REM   S=0:N=4:K=0
-REM   FOR digit=0 TO 19
-REM     S=S+N/(K+1)
-REM     S=S-N/(2*(K+4))
-REM     S=S-N/(4*(K+5))
-REM     S=S-N/(4*(K+6))
-REM     PRINT digit," ";S;" digit ";INTS
-REM     S=S-INTS
-REM     S=S*10
-REM     N=N*10/16
-REM     K=K+8
-REM   NEXT
-:
-REM equivalently and possibly preferable
-REM   S=0:N=4
-REM   K1=1
-REM   K2=8
-REM   K3=20
-REM   K4=24
-REM   FOR digit=0 TO 19
-REM     S=S+N/K1
-REM     S=S-N/K2
-REM     S=S-N/K3
-REM     S=S-N/K4
-REM     PRINT digit," ";S;" digit ";INTS
-REM     S=S-INTS
-REM     S=S*10
-REM     N=N*10/16
-REM     K1=K1+8
-REM     K2=K2+16
-REM     K3=K3+32
-REM     K4=K4+32
-REM   NEXT
-:
-REM equivalently and possibly preferable
-REM   S=0:N=4
-REM   K=0
-REM   FOR digit=0 TO 19
-REM     T=K+1
-REM     S=S+N/T
-REM     T=T+K+7
-REM     S=S-N/T
-REM     T=T+2*K+12
-REM     S=S-N/T
-REM     T=T+4
-REM     S=S-N/T
-REM     PRINT digit," ";S;" digit ";INTS
-REM     S=S-INTS
-REM     S=S*10
-REM     N=N*10/16
-REM     K=K+8
-REM   NEXT
-:
 t0=TIME: REM MODE 0
 :
-REM bignums are a list of bytes - just 4 at present
+REM bignums are a list of bytes, LSB first (lowest address)
 REM one byte, the first byte, is the integer part
 :
 digits=8
@@ -121,7 +50,7 @@ PROCx10(SumP)
 REM now re-scale the numerator
 PROCrescale(NumeratorP)
 :
-UNTIL K%>=8*digits : REM about 8 good digits from 8bit basic
+UNTIL K%>=8*digits
 :
 PRINT '(TIME-t0) DIV 100"s"
 END
@@ -147,40 +76,6 @@ NEXT
 ENDPROC
 :
 REM --------------------------------------------------
-:
-REM notes on division
-REM ideally we use no bignum temporaries
-REM but presently we use two
-REM
-REM TempP is a bignum temporary to be reduced to zero
-REM which we might be able to do without
-:
-REM maybe good to keep track of top non-zero byte
-REM of the denominator
-REM we'd like to line up rapidly at the start of play
-REM expect that's just a small constant piece of work
-:
-REM we will need to shift the denominator
-REM but that's not destructive really
-REM just a sliding three byte(?) window
-REM using a temporary D% for convenience
-:
-REM We align the denominator for the subtraction
-REM I is the bit we're going to set, or add in
-REM I is an LSB marker, lines up with LSB of D
-REM we over shift and then unshift to correct
-:
-REM division by repeated shift and subtract
-REM accumulating each bit into our sum as we go
-REM sum is a bignum but carries will be limited
-REM so we'll propagate only as many as needed
-REM better to accumulate a byte of bits and add
-REM them all at once
-:
-REM here D moves to the right getting smaller
-REM but maybe moving the bits of T left might win
-REM we'd fill in leftmost byte from N
-REM every 8 shifts
 :
 REM NumeratorP is a bignum
 REM K% is an integer, the number to divide by
@@ -266,8 +161,6 @@ REM --------------------------------------------------
 :
 DEF PROCrescale(BignumP)
 REM we multiply by 10/16 which is less than one
-REM possibly could shortcut this
-REM but taking a brute force approach for now
 PROCx10(BignumP)
 LOCAL carry, temp
 carry=0
