@@ -23,6 +23,8 @@ DIM SumP       big + pad: REM our bignum series accumulator
 DIM NumeratorP big + pad: REM bignum numerator
 DIM TempP      big + pad: REM temporary bignum for division
 :
+base=0 : REM our bignums can get shorter as we go
+:
 REM our numerator will be rescaled by 10/16 each digit
 PROCset(NumeratorP, 4)
 :
@@ -58,6 +60,7 @@ PROCx10(SumP)
 REM now re-scale the numerator
 PROCrescale(NumeratorP)
 :
+IF K%>24 base=base+.45:A%=base
 UNTIL K%>=8*digits
 :
 PRINT '(TIME-t0) DIV 100"s"
@@ -68,7 +71,7 @@ REM --------------------------------------------------
 DEF PROCset(BignumP, C)
 REM C is a tiny integer - one byte
 REM integer end of our bignum is at the far end
-FOR I%=0 TO big-1
+FOR I%=A% TO big-1
   BignumP?I%=0
 NEXT
 BignumP?(big-1)=C
@@ -78,7 +81,7 @@ REM --------------------------------------------------
 :
 DEF PROCcopy(TempP, NumeratorP)
 REM used once, could be inlined
-FOR I%=0 TO big-1
+FOR I%=A% TO big-1
   TempP?I%=NumeratorP?I%
 NEXT
 ENDPROC
@@ -105,7 +108,7 @@ REPEAT
   IF cmp THEN IF op$="sub" PROCsub(SumP, 1, S%)
   IF cmp THEN PROCsub(TempP, D%, S%)
   S%=S%-1
-UNTIL S%<0
+UNTIL S%<(8*A%)
 :
 ENDPROC
 :
@@ -169,7 +172,7 @@ REM we multiply by 10/16 which is less than one
 PROCx10(BignumP)
 LOCAL carry, temp
 carry=0
-FOR I%=big-1 TO 0 STEP -1
+FOR I%=big-1 TO A% STEP -1
   temp=BignumP?I%
   BignumP?I% = (BignumP?I%) DIV 16 + (carry * 16)
   carry = temp AND 15
@@ -199,7 +202,7 @@ DEF PROCx10(BignumP)
   REM two byte result from each digit demands a carry
   LOCAL carry, temp
   carry=0
-  FOR I%=0 TO big-1
+  FOR I%=A% TO big-1
     temp=(BignumP?I%)*10 + carry
     BignumP?I% = temp AND 255
     carry = temp DIV 256
