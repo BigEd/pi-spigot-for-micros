@@ -21,7 +21,6 @@ pad=4
 :
 DIM SumP       big + pad: REM our bignum series accumulator
 DIM NumeratorP big + pad: REM bignum numerator
-DIM TempP      big + pad: REM temporary bignum for division
 :
 base=0 : A%=base : REM our bignums can get shorter as we go
 :
@@ -79,15 +78,6 @@ ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCcopy(TempP, NumeratorP)
-REM used once, could be inlined
-FOR I%=A% TO big-1
-  TempP?I%=NumeratorP?I%
-NEXT
-ENDPROC
-:
-REM --------------------------------------------------
-:
 REM NumeratorP is a bignum
 REM K% is an integer, the number to divide by
 REM SumP is a bignum to add or subtract into
@@ -95,21 +85,22 @@ REM op$ is "add" or "sub"
 :
 REM --------------------------------------------------
 :
-DEF PROCdivaddsub(NumeratorP, K%, SumP, op$)
-:
-LOCAL S%,T%
-PROCcopy(TempP, NumeratorP)
-D%=K% : REM presently D in fact doesn't change
-:
-FOR T%=big-2 TO A% STEP -1
-  byte%=0
-  FOR S%=8*T%+7 TO 8*T% STEP -1
-    byte%=byte%*2
-    IF FNcmp(TempP,D%,S%) PROCsubbit(TempP, D%, S%):byte%=byte%+1
+DEF PROCdivaddsub(NumeratorP, D%, SumP, op$)
+  LOCAL I%,J%,T%
+  IF D%>&FFFFFF STOP
+  T%=0
+  FOR I%=big-1 TO A% STEP -1
+    T%=T%*256+NumeratorP?I%
+    B%=0
+    D%=D%*256
+    FOR J%=0 TO 7
+      B%=B%*2
+      D%=D% DIV 2
+      IF T%<0 OR T%>=D% T%=T%-D%:B%=B%+1
+    NEXT
+    IF B%<>0: IF op$="add" PROCaddbyte(SumP, B%, I%)
+    IF B%<>0: IF op$="sub" PROCsubbyte(SumP, B%, I%)
   NEXT
-  IF byte%<>0: IF op$="add" PROCaddbyte(SumP, byte%, T%)
-  IF byte%<>0: IF op$="sub" PROCsubbyte(SumP, byte%, T%)
-NEXT
 ENDPROC
 :
 REM --------------------------------------------------
@@ -135,43 +126,6 @@ DEF PROCsubbyte(BignumP, N%, I%)
     I%=I%+1
   UNTIL I%=big OR N%=0
 ENDPROC
-:
-REM --------------------------------------------------
-:
-DEF PROCsubbit(BignumP, N%, S%)
-  LOCAL I%,carry,temp
-  N%=N%*2^(S% MOD 8)
-  I%=S% DIV 8
-  carry=0
-  REPEAT
-    temp=512 + BignumP?I% - (N% AND 255) - carry
-    BignumP?I% = temp AND 255
-    carry = (temp DIV 256) AND 1
-    N%=N% DIV 256
-    I%=I%+1
-  UNTIL I%=big OR (N%=0 AND carry=0)
-ENDPROC
-:
-REM --------------------------------------------------
-:
-REM compare bignum with integer presuming some alignment
-REM returns TRUE if bignum>=N%<<S%
-DEF FNcmp(BignumP, N%, S%)
-  LOCAL I%,J%
-  N%=N%*2^(S% MOD 8)
-  I%=S% DIV 8
-  REM work out MSB of bignum
-  J%=big
-  REPEAT
-    J%=J%-1
-  UNTIL J%<0 OR BignumP?J%>0
-  REM Case 1: bignum has non-zero elements beyond N, so must be > N%
-  IF J%>=I%+4 =TRUE
-  REM Case 2: bignum=0 so return answer based on N% only
-  IF J%<0 =(N%=0)
-  REM Case 3: return result based on a comparison
-  IF BignumP!I%<0: =TRUE
-=(BignumP!I%>=N%)
 :
 REM --------------------------------------------------
 :
