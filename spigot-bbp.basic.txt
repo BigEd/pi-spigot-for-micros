@@ -23,7 +23,7 @@ DIM SumP       big + pad: REM our bignum series accumulator
 DIM NumeratorP big + pad: REM bignum numerator
 DIM TempP      big + pad: REM temporary bignum for division
 :
-base=0 : REM our bignums can get shorter as we go
+base=0 : A%=base : REM our bignums can get shorter as we go
 :
 REM our numerator will be rescaled by 10/16 each digit
 PROCset(NumeratorP, 4)
