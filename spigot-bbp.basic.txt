@@ -60,7 +60,7 @@ PROCx10(SumP)
 REM now re-scale the numerator
 PROCrescale(NumeratorP)
 :
-IF K%>24 base=base+.45:A%=base
+IF K%>24 base=base+106/256:A%=base
 UNTIL K%>=8*digits
 :
 PRINT '(TIME-t0) DIV 100"s"
