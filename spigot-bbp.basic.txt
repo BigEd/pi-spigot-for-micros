@@ -98,31 +98,11 @@ DEF PROCdivaddsub(NumeratorP, D%, SumP, op$)
       D%=D% DIV 2
       IF T%<0 OR T%>=D% T%=T%-D%:B%=B%+1
     NEXT
-    IF B%<>0: IF op$="add" PROCaddbyte(SumP, B%, I%)
-    IF B%<>0: IF op$="sub" PROCsubbyte(SumP, B%, I%)
+    IF B%=0 NEXT:ENDPROC
+    S%=SumP!I%
+    IF op$="add" SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
+    IF SGNS%<>SGN(SumP!I%) STOP
   NEXT
-ENDPROC
-:
-REM --------------------------------------------------
-:
-DEF PROCaddbyte(BignumP, N%, I%)
-  REPEAT
-    N%=BignumP?I%+N%
-    BignumP?I%=N%
-    IF (N% AND 256) N%=1 ELSE N%=0
-    I%=I%+1
-  UNTIL N%=0
-ENDPROC
-:
-REM --------------------------------------------------
-:
-DEF PROCsubbyte(BignumP, N%, I%)
-  REPEAT
-    N%=BignumP?I%-N%
-    BignumP?I%=N%
-    IF (N% AND 256) N%=1 ELSE N%=0
-    I%=I%+1
-  UNTIL N%=0
 ENDPROC
 :
 REM --------------------------------------------------
