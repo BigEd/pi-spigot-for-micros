@@ -30,6 +30,7 @@ PROCset(NumeratorP, 4)
 REM the denominator is a (two or three byte) integer
 REM and K is the iteration variable
 K%=0
+L%=big-1 : REM leading zeros index for fast forward division
 :
 REM start producing digits!
 PROCset(SumP, 4)
@@ -58,6 +59,7 @@ REPEAT
   :
   REM now re-scale the numerator
   PROCrescale(NumeratorP)
+  IF NumeratorP?L%=0 L%=L%-1
   :
   IF K%>24 base=base+106/256:A%=base
 UNTIL K%>=8*digits
@@ -88,8 +90,8 @@ REM --------------------------------------------------
 DEF PROCdivaddsub(C%)
   LOCAL I%,J%,T%
   T%=0
-  FOR I%=big-1 TO A% STEP -1
-    T%=T%*256+NumeratorP?I%:IFT%<D%NEXT:ENDPROC
+  FOR I%=L% TO A% STEP -1
+    T%=T%*256+NumeratorP?I%
     B%=0
     D%=D%*256
     FOR J%=0 TO 7
