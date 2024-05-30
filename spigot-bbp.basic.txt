@@ -12,7 +12,7 @@ REM bignums are a list of bytes, LSB first (lowest address)
 REM one byte, the first byte, is the integer part
 :
 digits=8
-big=((digits*5) DIV 12)+1 : REM can add 1 or 2 for guard digits
+big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
 PRINT "Digits = ";digits
 PRINT "   Big = ";big;" bytes"
 :
