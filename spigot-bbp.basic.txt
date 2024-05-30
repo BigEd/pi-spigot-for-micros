@@ -106,25 +106,23 @@ ENDPROC
 REM --------------------------------------------------
 :
 DEF PROCaddbyte(BignumP, N%, I%)
-  LOCAL temp
   REPEAT
-    temp=BignumP?I% + N%
-    BignumP?I% = temp AND 255
-    IF (temp AND 256) N%=1 ELSE N%=0
+    N%=BignumP?I%+N%
+    BignumP?I%=N%
+    IF (N% AND 256) N%=1 ELSE N%=0
     I%=I%+1
-  UNTIL I%=big OR N%=0
+  UNTIL N%=0
 ENDPROC
 :
 REM --------------------------------------------------
 :
 DEF PROCsubbyte(BignumP, N%, I%)
-  LOCAL temp
   REPEAT
-    temp=BignumP?I% - N%
-    BignumP?I% = temp AND 255
-    IF (temp AND 256) N%=1 ELSE N%=0
+    N%=BignumP?I%-N%
+    BignumP?I%=N%
+    IF (N% AND 256) N%=1 ELSE N%=0
     I%=I%+1
-  UNTIL I%=big OR N%=0
+  UNTIL N%=0
 ENDPROC
 :
 REM --------------------------------------------------
