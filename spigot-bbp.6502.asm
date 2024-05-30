@@ -189,10 +189,9 @@ ENDIF
 .byte_loop_next
         LDA np
         CMP np_end
-        BNE byte_loop_next2
         LDA np+1
-        CMP np_end+1
-        BNE byte_loop_next2
+        SBC np_end+1
+        BCS byte_loop_next2
 
 ; ENDPROC
         RTS
