@@ -1,3 +1,4 @@
+AUTO
 REM BBP pi calculation like youtu.be/SPTzzSuBFlc
 :
 REM pi to 80 digits is
@@ -11,7 +12,7 @@ t0=TIME
 REM bignums are a list of bytes, LSB first (lowest address)
 REM one byte, the first byte, is the integer part
 :
-digits=8
+digits=80
 big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
 PRINT "Digits = ";digits
 PRINT "   Big = ";big;" bytes"
@@ -21,6 +22,12 @@ pad=4
 :
 DIM SumP       big + pad: REM our bignum series accumulator
 DIM NumeratorP big + pad: REM bignum numerator
+:
+*LOAD SPIGMC
+divadd=&7000
+divsub=&7003
+!&70=NumeratorP
+!&72=SumP
 :
 base=0 : L%=base : REM our bignums can get shorter as we go
 :
@@ -37,17 +44,18 @@ PROCset(SumP, 4)
 first=TRUE
 REPEAT
   :
+  !&74=M%:!&76=L%
   REM compute N/K and add/sub the quotient into S
   REM we adjust the denominator as needed
   D%=K%+1
-  IF NOT first PROCdivaddsub(TRUE)
+  IF NOT first !&78=D%:CALL divadd
   first=FALSE
   D%=D%+K%+7
-  PROCdivaddsub(FALSE)
+  !&78=D%:CALL divsub
   D%=D%+2*K%+12
-  PROCdivaddsub(FALSE)
+  !&78=D%:CALL divsub
   D%=D%+4
-  PROCdivaddsub(FALSE)
+  !&78=D%:CALL divsub
   K%=K%+8
   :
   REM S is updated, now take a digit
@@ -76,42 +84,6 @@ DEF PROCset(BignumP, C)
     BignumP?I%=0
   NEXT
   BignumP?(big-1)=C
-ENDPROC
-:
-REM --------------------------------------------------
-:
-REM Globals:
-REM   NumeratorP, SumP are bignums
-REM   SumP is a bignum to add or subtract into
-REM   D% is an integer, the number to divide by
-REM   M% is the MSB index into NumeratorP
-REM   L% is the LSB index into NumeratorP
-REM Parameters:
-REM   C% is TRUE for add, FALSE for subtract
-REM Locals:
-REM   I% byte loop counter (M% to L%)
-REM   J% bit loop counter (0 TO 7)
-REM   T% is a 4-byte temporary numerator
-REM   B% is the byte being accumulated
-:
-REM --------------------------------------------------
-:
-DEF PROCdivaddsub(C%)
-  T%=0
-  FOR I%=M% TO L% STEP -1
-    T%=T%*256+NumeratorP?I%
-    B%=0
-    D%=D%*256
-    FOR J%=0 TO 7
-      B%=B%*2
-      D%=D% DIV 2
-      IF T%>=D% T%=T%-D%:B%=B%+1
-    NEXT
-    IF B%=0 NEXT:ENDPROC
-    S%=SumP!I%
-    IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
-    IF SGNS%<>SGN(SumP!I%) STOP
-  NEXT
 ENDPROC
 :
 REM --------------------------------------------------
