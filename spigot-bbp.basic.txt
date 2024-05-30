@@ -95,7 +95,7 @@ DEF PROCdivaddsub(NumeratorP, D%, SumP, op$)
     FOR J%=0 TO 7
       B%=B%*2
       D%=D% DIV 2
-      IF T%<0 OR T%>=D% T%=T%-D%:B%=B%+1
+      IF T%>=D% T%=T%-D%:B%=B%+1
     NEXT
     IF B%=0 NEXT:ENDPROC
     S%=SumP!I%
