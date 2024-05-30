@@ -87,7 +87,6 @@ REM --------------------------------------------------
 :
 DEF PROCdivaddsub(NumeratorP, D%, SumP, op$)
   LOCAL I%,J%,T%
-  IF D%>&FFFFFF STOP
   T%=0
   FOR I%=big-1 TO A% STEP -1
     T%=T%*256+NumeratorP?I%
