@@ -39,14 +39,14 @@ REPEAT
 REM compute N/K and add/sub the quotient into S
 REM we adjust the denominator as needed
 T=K%+1
-IF NOT first PROCdivaddsub(NumeratorP, T, SumP, "add")
+IF NOT first PROCdivaddsub(NumeratorP, T, SumP, TRUE)
 first=FALSE
 T=T+K%+7
-PROCdivaddsub(NumeratorP, T, SumP, "sub")
+PROCdivaddsub(NumeratorP, T, SumP, FALSE)
 T=T+2*K%+12
-PROCdivaddsub(NumeratorP, T, SumP, "sub")
+PROCdivaddsub(NumeratorP, T, SumP, FALSE)
 T=T+4
-PROCdivaddsub(NumeratorP, T, SumP, "sub")
+PROCdivaddsub(NumeratorP, T, SumP, FALSE)
 K%=K%+8
 :
 REM S is updated, now take a digit
@@ -85,7 +85,7 @@ REM op$ is "add" or "sub"
 :
 REM --------------------------------------------------
 :
-DEF PROCdivaddsub(NumeratorP, D%, SumP, op$)
+DEF PROCdivaddsub(NumeratorP, D%, SumP, C%)
   LOCAL I%,J%,T%
   T%=0
   FOR I%=big-1 TO A% STEP -1
@@ -99,7 +99,7 @@ DEF PROCdivaddsub(NumeratorP, D%, SumP, op$)
     NEXT
     IF B%=0 NEXT:ENDPROC
     S%=SumP!I%
-    IF op$="add" SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
+    IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
     IF SGNS%<>SGN(SumP!I%) STOP
   NEXT
 ENDPROC
