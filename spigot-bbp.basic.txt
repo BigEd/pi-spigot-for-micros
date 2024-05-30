@@ -89,7 +89,7 @@ DEF PROCdivaddsub(NumeratorP, D%, SumP, op$)
   LOCAL I%,J%,T%
   T%=0
   FOR I%=big-1 TO A% STEP -1
-    T%=T%*256+NumeratorP?I%
+    T%=T%*256+NumeratorP?I%:IFT%<D%NEXT:ENDPROC
     B%=0
     D%=D%*256
     FOR J%=0 TO 7
