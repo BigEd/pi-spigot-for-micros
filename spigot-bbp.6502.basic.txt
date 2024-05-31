@@ -6,8 +6,6 @@ REM 62643383279502884197
 REM 16939937510582097494
 REM 45923078164062862089
 :
-t0=TIME
-:
 REM bignums are a list of bytes, LSB first (lowest address)
 REM one byte, the first byte, is the integer part
 :
@@ -34,9 +32,11 @@ spigot=&7000
 PROCset(NumeratorP, 4)
 PROCset(SumP, 4)
 :
+t0=TIME
+:
 CALL spigot
 :
-PRINT '(TIME-t0) DIV 100"s"
+PRINT '(TIME-t0) / 100"s"
 END
 :
 REM --------------------------------------------------
