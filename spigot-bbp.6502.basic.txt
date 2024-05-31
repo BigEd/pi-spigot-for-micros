@@ -1,4 +1,3 @@
-AUTO
 REM BBP pi calculation like youtu.be/SPTzzSuBFlc
 :
 REM pi to 80 digits is
@@ -12,7 +11,8 @@ t0=TIME
 REM bignums are a list of bytes, LSB first (lowest address)
 REM one byte, the first byte, is the integer part
 :
-digits=80
+INPUT "Digits ",digits
+:
 big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
 PRINT "Digits = ";digits
 PRINT "   Big = ";big;" bytes"
@@ -24,53 +24,17 @@ DIM SumP       big + pad: REM our bignum series accumulator
 DIM NumeratorP big + pad: REM bignum numerator
 :
 *LOAD SPIGMC
-divadd=&7000
-divsub=&7003
+
+spigot=&7000
 !&70=NumeratorP
 !&72=SumP
+!&74=big
+!&76=digits
 :
-base=0 : L%=base : REM our bignums can get shorter as we go
-:
-REM our numerator will be rescaled by 10/16 each digit
 PROCset(NumeratorP, 4)
-:
-REM the denominator is a (two or three byte) integer
-REM and K is the iteration variable
-K%=0
-M%=big-1 : REM leading zeros index for fast forward division
-:
-REM start producing digits!
 PROCset(SumP, 4)
-first=TRUE
-REPEAT
-  :
-  !&74=M%:!&76=L%
-  REM compute N/K and add/sub the quotient into S
-  REM we adjust the denominator as needed
-  D%=K%+1
-  IF NOT first !&78=D%:CALL divadd
-  first=FALSE
-  D%=D%+K%+7
-  !&78=D%:CALL divsub
-  D%=D%+2*K%+12
-  !&78=D%:CALL divsub
-  D%=D%+4
-  !&78=D%:CALL divsub
-  K%=K%+8
-  :
-  REM S is updated, now take a digit
-  :
-  PRINT CHR$(48+FNextract(SumP));
-  :
-  PROCmask(SumP) : REM remove that digit from S
-  PROCx10(SumP)
-  :
-  REM now re-scale the numerator
-  PROCrescale(NumeratorP)
-  IF NumeratorP?M%=0 M%=M%-1
-  :
-  IF K%>24 base=base+106/256:L%=base
-UNTIL K%>=8*digits
+:
+CALL spigot
 :
 PRINT '(TIME-t0) DIV 100"s"
 END
@@ -84,48 +48,4 @@ DEF PROCset(BignumP, C)
     BignumP?I%=0
   NEXT
   BignumP?(big-1)=C
-ENDPROC
-:
-REM --------------------------------------------------
-:
-DEF PROCrescale(BignumP)
-  REM we multiply by 10/16 which is less than one
-  PROCx10(BignumP)
-  LOCAL carry, temp
-  carry=0
-  FOR I%=big-1 TO L% STEP -1
-    temp=BignumP?I%
-    BignumP?I% = (BignumP?I%) DIV 16 + (carry * 16)
-    carry = temp AND 15
-  NEXT
-ENDPROC
-:
-REM --------------------------------------------------
-:
-DEF FNextract(BignumP)
-  REM a sanity check is that this is 9 at most
-  REM assumes bignum has 1 byte before the binary point
-  =(BignumP?(big-1)) : REM decimal digit, just the top byte
-:
-REM --------------------------------------------------
-:
-DEF PROCmask(SumP)
-  REM set integer part of the bignum to zero
-  REM assumes bignum has 1 byte before the binary point
-  I%=big-1
-  SumP?I%=0
-ENDPROC
-:
-REM --------------------------------------------------
-:
-DEF PROCx10(BignumP)
-  REM bignum multiply by small number
-  REM two byte result from each digit demands a carry
-  LOCAL carry, temp
-  carry=0
-  FOR I%=L% TO big-1
-    temp=(BignumP?I%)*10 + carry
-    BignumP?I% = temp AND 255
-    carry = temp DIV 256
-  NEXT
 ENDPROC
