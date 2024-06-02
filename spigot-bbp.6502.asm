@@ -31,6 +31,7 @@ numeratorp = &70 ; 2 byte pointer to numerator bignum
 ; ==================================================================================
 
         ORG &7000
+        GUARD &7C00
 
 .code_start
 
@@ -475,18 +476,11 @@ carry = temp + 1
         STY     carry
 .loop
         LDA     (np), Y
-        LSR     A
-        ROR     temp
-        LSR     A
-        ROR     temp
-        LSR     A
-        ROR     temp
-        LSR     A
-        ROR     temp
+        TAX
+        LDA     div16_table_msb,X
         ORA     carry
         STA     (np), Y
-        LDA     temp
-        AND     #&F0
+        LDA     div16_table_lsb,X
         STA     carry
         _DEC16  np
         _CMP16  np, np_end ; C=1 if arg1 >= arg2
@@ -504,6 +498,16 @@ NEXT
 .mult10_table_msb
 FOR I,0,255
 EQUB (I*10) DIV &100
+NEXT
+
+.div16_table_lsb
+FOR I,0,255
+EQUB (I MOD 16) * 16
+NEXT
+
+.div16_table_msb
+FOR I,0,255
+EQUB (I DIV 16)
 NEXT
 
 IF DEBUG
