@@ -165,6 +165,7 @@ MACRO _DIVADDSUB bytes,op
         _ADD16  np_end, numeratorp, lsb_index
         _ADD16  sp, sump, msb_index
 
+        LDY     #0
 .byte_loop
 
 ;       T%=T%*256+NumeratorP?I%
@@ -172,7 +173,6 @@ FOR i,bytes-1,1,-1
         LDA     temp+i-1
         STA     temp+i
 NEXT
-        LDY     #0
         LDA     (np),Y
         STA     temp+0
 
@@ -184,15 +184,14 @@ FOR i,bytes-1,1,-1
         LDA     divisor+i-1
         STA     divisor+i
 NEXT
-        LDA     #0
-        STA     divisor+0
+        STY     divisor+0    ; Y is a constant 0
 
+;       Unroll the bit loop
 ;       FOR J%=0 TO 7
-        LDX     #7
-.bit_loop
+FOR j,0,7
 
 ;       B%=B%*2
-        ASL     byte
+        ASL     A            ; A is used to accumulate the byte of data
 
 ;       D%=D% DIV 2
         LSR     divisor+bytes-1
@@ -202,29 +201,29 @@ NEXT
 
 ;       IF T%>=D%
 FOR i,bytes-1,0,-1
-        LDA     divisor+i
-        CMP     temp+i
+        LDX     divisor+i    ; X is used so as not to corrupt A
+        CPX     temp+i
         BCC     do_subtract
         BNE     bit_loop_next
 NEXT
 ;       T%=T%-D%:B%=B%+1
 .do_subtract
+        TAX                  ; save A
         SEC
 FOR i,0,bytes-1
         LDA     temp+i
         SBC     divisor+i
         STA     temp+i
 NEXT
-
-        INC     byte
+        TXA                  ; restore A
+        ORA     #1
 
 ;       NEXT J%
 .bit_loop_next
-        DEX
-        BPL     bit_loop
+NEXT
 
 ;     IF B%=0 NEXT:ENDPROC
-        LDA     byte
+        CMP     #0
         BEQ     byte_loop_next
 
 ;     IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
@@ -232,7 +231,6 @@ NEXT
 IF (op)
         ; Add byte
         CLC
-        LDY     #0
         ADC     (sp),Y
         STA     (sp),Y
         BCC     byte_loop_next
@@ -242,10 +240,11 @@ IF (op)
         ADC     (sp),Y
         STA     (sp),Y
         BCS     cloop
+        LDY     #0
 ELSE
         ; Subtract byte
         SEC
-        LDY     #0
+        STA     byte
         LDA     (sp),Y
         SBC     byte
         STA     (sp),Y
@@ -256,6 +255,7 @@ ELSE
         SBC     #0
         STA     (sp),Y
         BCC     cloop
+        LDY     #0
 ENDIF
 
 ;       NEXT
