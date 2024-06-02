@@ -154,7 +154,7 @@ ENDMACRO
 ;
 ; DEF PROCdivaddsub(C%)
 
-MACRO _DIVADDSUB op
+MACRO _DIVADDSUB bytes,op
 
 ;   T%=0
         _MOV32C temp, 0
@@ -168,12 +168,10 @@ MACRO _DIVADDSUB op
 .byte_loop
 
 ;       T%=T%*256+NumeratorP?I%
-        LDA     temp+2
-        STA     temp+3
-        LDA     temp+1
-        STA     temp+2
-        LDA     temp+0
-        STA     temp+1
+FOR i,bytes-1,1,-1
+        LDA     temp+i-1
+        STA     temp+i
+NEXT
         LDY     #0
         LDA     (np),Y
         STA     temp+0
@@ -182,12 +180,10 @@ MACRO _DIVADDSUB op
 ;       not needed as we shift a byte 8 times
 
 ;       D%=D%*256
-        LDA     divisor+2
-        STA     divisor+3
-        LDA     divisor+1
-        STA     divisor+2
-        LDA     divisor+0
-        STA     divisor+1
+FOR i,bytes-1,1,-1
+        LDA     divisor+i-1
+        STA     divisor+i
+NEXT
         LDA     #0
         STA     divisor+0
 
@@ -199,44 +195,26 @@ MACRO _DIVADDSUB op
         ASL     byte
 
 ;       D%=D% DIV 2
-        LSR     divisor+3
-        ROR     divisor+2
-        ROR     divisor+1
-        ROR     divisor+0
+        LSR     divisor+bytes-1
+FOR i,bytes-2,0,-1
+        ROR     divisor+i
+NEXT
 
 ;       IF T%>=D%
-        LDA     divisor+3
-        CMP     temp+3
+FOR i,bytes-1,0,-1
+        LDA     divisor+i
+        CMP     temp+i
         BCC     do_subtract
         BNE     bit_loop_next
-        LDA     divisor+2
-        CMP     temp+2
-        BCC     do_subtract
-        BNE     bit_loop_next
-        LDA     divisor+1
-        CMP     temp+1
-        BCC     do_subtract
-        BNE     bit_loop_next
-        LDA     divisor+0
-        CMP     temp+0
-        BCC     do_subtract
-        BNE     bit_loop_next
-
+NEXT
 ;       T%=T%-D%:B%=B%+1
 .do_subtract
         SEC
-        LDA     temp+0
-        SBC     divisor+0
-        STA     temp+0
-        LDA     temp+1
-        SBC     divisor+1
-        STA     temp+1
-        LDA     temp+2
-        SBC     divisor+2
-        STA     temp+2
-        LDA     temp+3
-        SBC     divisor+3   ; Divisor will not be full 32 bits
-        STA     temp+3
+FOR i,0,bytes-1
+        LDA     temp+i
+        SBC     divisor+i
+        STA     temp+i
+NEXT
 
         INC     byte
 
@@ -426,10 +404,10 @@ NEXT
         JMP OSNEWL
 
 .divadd
-        _DIVADDSUB TRUE
+        _DIVADDSUB 4, TRUE
 
 .divsub
-        _DIVADDSUB FALSE
+        _DIVADDSUB 4, FALSE
 
 ; DEF PROCx10(BignumP)
 ;   REM bignum multiply by small number
