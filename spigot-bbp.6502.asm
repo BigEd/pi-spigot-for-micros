@@ -433,22 +433,14 @@ carry = temp + 1
         LDY    #0
         STY    carry   ; force carry byte to zero on first iteration
 .loop
-        STY    temp    ; MSB 8 bits of *10
         LDA    (np), Y ; bitnum byte
-        ASL    A
-        ROL    temp    ; temp, A = bignum * 2
-        ASL    A
-        ROL    temp    ; temp, A = bignum * 4
-        ADC    (np), Y
-        BCC    nc
-        INC    temp    ; temp, A = bignum * 5
-.nc     ASL    A
-        ROL    temp    ; temp, A = bignum * 10
-        CLC
+        TAX
+        LDA    mult10_table_lsb, X
+        CLC            ; TODO we could get rid of this if we tried hard
         ADC    carry
-        STA    (np),Y  ; store LSB back to bignum
-        TYA
-        ADC    temp
+        STA    (np), Y
+        LDA    mult10_table_msb, X
+        ADC    #0
         STA    carry
 
         _INC16 np
@@ -501,6 +493,18 @@ carry = temp + 1
         BCS     loop
         RTS
 }
+
+ALIGN &100
+
+.mult10_table_lsb
+FOR I,0,255
+EQUB (I*10) MOD &100
+NEXT
+
+.mult10_table_msb
+FOR I,0,255
+EQUB (I*10) DIV &100
+NEXT
 
 IF DEBUG
 
