@@ -443,25 +443,25 @@ carry = temp + 1
         LDA    #0
         STA    carry   ; force carry byte to zero on first iteration
         STA    np
+        CLC
 .loop
         LDA    (np), Y ; bitnum byte
         TAX
         LDA    mult10_table_lsb, X
-        CLC            ; TODO we could get rid of this if we tried hard
-        ADC    carry
+        ADC    carry   ; C=1 from this add will be handled next time around
         STA    (np), Y
         LDA    mult10_table_msb, X
-        ADC    #0
         STA    carry
         INY
         BNE    compare
         INC    np+1
 .compare
         ; An equailty comparison is cheaper, but needs a range check up front
-        CPY    np_end
+        TYA
+        EOR    np_end  ; need to preserve carry, so can't use CPY
         BNE    loop
         LDA    np+1
-        CMP    np_end+1
+        EOR    np_end+1
         BNE    loop
         RTS
 }
