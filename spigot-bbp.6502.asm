@@ -168,6 +168,11 @@ MACRO _DIVADDSUB bytes,op
 
         LDY     #0
 .byte_loop
+        _CMP16  np, np_end  ; C=1 if arg1 >= arg2
+        BCS     byte_loop_more
+; ENDPROC
+        RTS
+.byte_loop_more
 
 ;       T%=T%*256+NumeratorP?I%
 FOR i,bytes-1,1,-1
@@ -262,14 +267,6 @@ ENDIF
 ;       NEXT
 
 .byte_loop_next
-        _CMP16  np, np_end  ; C=1 if arg1 >= arg2
-        BCS     byte_loop_next2
-
-; ENDPROC
-        RTS
-
-.byte_loop_next2
-
         _DEC16  np
         _DEC16  sp
 
