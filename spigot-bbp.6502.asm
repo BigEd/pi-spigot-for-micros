@@ -487,8 +487,10 @@ carry = temp + 1
         BCS     ok
         RTS
 .ok
-        LDY     #0
-        STY     carry
+        LDY     np
+        LDA     #0
+        STA     carry
+        STA     np
 .loop
         LDA     (np), Y
         TAX
@@ -497,10 +499,13 @@ carry = temp + 1
         STA     (np), Y
         LDA     div16_table_lsb,X
         STA     carry
-        _DEC16  np
+        CPY     #0
+        BNE     skip
+        DEC     np+1
+.skip
+        DEY
         ; An equailty comparison is cheaper, but needs a range check up front
-        LDA    np
-        CMP    np_end
+        CPY    np_end
         BNE    loop
         LDA    np+1
         CMP    np_end+1
