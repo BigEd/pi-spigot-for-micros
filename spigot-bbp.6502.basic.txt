@@ -9,7 +9,8 @@ REM 45923078164062862089
 REM bignums are a list of bytes, LSB first (lowest address)
 REM one byte, the first byte, is the integer part
 :
-INPUT "Digits ",digits
+REM INPUT "Digits ",digits
+digits=800
 :
 big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
 PRINT "Digits = ";digits
