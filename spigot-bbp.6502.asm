@@ -433,9 +433,12 @@ carry = temp + 1
 
 .mult10
 {
-        _ADD16  np_end, np, big
-        _ADD16  np, np, lsb_index
-
+        _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
+        _ADD16  np, np, lsb_index ; np is the first element of work
+        _CMP16  np, np_end        ; range check up front to be safe
+        BCC     ok
+        RTS
+.ok
         LDY    #0
         STY    carry   ; force carry byte to zero on first iteration
 .loop
@@ -448,9 +451,8 @@ carry = temp + 1
         LDA    mult10_table_msb, X
         ADC    #0
         STA    carry
-
         _INC16 np
-
+        ; An equailty comparison is cheaper, but needs a range check up front
         LDA    np
         CMP    np_end
         BNE    loop
@@ -474,9 +476,13 @@ carry = temp + 1
 .div16
 {
         _ADD16  np_end, np, lsb_index
+        _DEC16  np_end            ; np_end is one beyond the last element of work
         _ADD16  np, np, big
-        _DEC16  np
-
+        _DEC16  np                ; np is thefirst element of work
+        _CMP16  np, np_end        ; range check up front to be safe
+        BCS     ok
+        RTS
+.ok
         LDY     #0
         STY     carry
 .loop
@@ -488,8 +494,13 @@ carry = temp + 1
         LDA     div16_table_lsb,X
         STA     carry
         _DEC16  np
-        _CMP16  np, np_end ; C=1 if arg1 >= arg2
-        BCS     loop
+        ; An equailty comparison is cheaper, but needs a range check up front
+        LDA    np
+        CMP    np_end
+        BNE    loop
+        LDA    np+1
+        CMP    np_end+1
+        BNE    loop
         RTS
 }
 
