@@ -10,7 +10,7 @@ REM bignums are a list of bytes, LSB first (lowest address)
 REM one byte, the first byte, is the integer part
 :
 REM INPUT "Digits ",digits
-digits=800
+digits=1000
 :
 big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
 PRINT "Digits = ";digits
@@ -22,10 +22,10 @@ pad=4
 DIM SumP       big + pad: REM our bignum series accumulator
 DIM NumeratorP big + pad: REM bignum numerator
 :
-HIMEM=&7000
+HIMEM=&6800
 *LOAD SPIGMC
 
-spigot=&7000
+spigot=&6800
 !&70=NumeratorP
 !&72=SumP
 !&74=big

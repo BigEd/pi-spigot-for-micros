@@ -30,7 +30,7 @@ numeratorp = &70 ; 2 byte pointer to numerator bignum
 ; Code origin
 ; ==================================================================================
 
-        ORG &7000
+        ORG &6800
         GUARD &7C00
 
 .code_start
@@ -397,9 +397,25 @@ NEXT
         JMP OSNEWL
 
 .divadd
+        LDA divisor+2
+        BEQ divadd24
+        JMP divadd32
+
+.divadd24
+        _DIVADDSUB 3, TRUE
+
+.divadd32
         _DIVADDSUB 4, TRUE
 
 .divsub
+        LDA divisor+2
+        BEQ divsub24
+        JMP divsub32
+
+.divsub24
+        _DIVADDSUB 3, FALSE
+
+.divsub32
         _DIVADDSUB 4, FALSE
 
 ; DEF PROCx10(BignumP)
