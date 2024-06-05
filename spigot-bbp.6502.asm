@@ -439,8 +439,10 @@ carry = temp + 1
         BCC     ok
         RTS
 .ok
-        LDY    #0
-        STY    carry   ; force carry byte to zero on first iteration
+        LDY    np      ; use Y as the LSB of the loop
+        LDA    #0
+        STA    carry   ; force carry byte to zero on first iteration
+        STA    np
 .loop
         LDA    (np), Y ; bitnum byte
         TAX
@@ -451,10 +453,12 @@ carry = temp + 1
         LDA    mult10_table_msb, X
         ADC    #0
         STA    carry
-        _INC16 np
+        INY
+        BNE    compare
+        INC    np+1
+.compare
         ; An equailty comparison is cheaper, but needs a range check up front
-        LDA    np
-        CMP    np_end
+        CPY    np_end
         BNE    loop
         LDA    np+1
         CMP    np_end+1
