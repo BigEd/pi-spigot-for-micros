@@ -376,17 +376,9 @@ NEXT
         _ADD16C msb_index, msb_index, &FFFF
 .num_not_zero
 
-;   IF K%>24 base=base+106/256:L%=base
+;   IF base=base+106/256:L%=base
 
 {
-       LDA      k+1
-       ORA      k+2
-       ORA      k+3
-       BNE      update
-       LDA      k
-       CMP      #25
-       BCC      skip
-.update
        CLC
        LDA      lsb_fract
        ADC      #106
