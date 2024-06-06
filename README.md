@@ -34,24 +34,25 @@ but to get more than a few digits we will need bignum operations: N and S both n
 To take a simple approach we will need one or more temporary bignums which will cost both time and space.  We expect to be able to refine our approach to use only two bignums, and possibly even to share space as one grows while the other one shrinks.
 
 The Bellard algorithm is also simple to capture in BBC Basic:
-```
+```text
 REM Bellard - github.com/BigEd/pi-spigot-for-micros
 REM 11 digits correct with BBC Basic on 6502
 REM 19 digits correct with BBC Basic on x86
-S=0:N=1/64
-FOR K=0 TO 7
-  F=4*K:T=10*K
-  S=S-32*N/(F+1)
-  S=S-N/(F+3)
+F=0:T=0:S=0:N=1/64
+FOR K=0 TO 4
   S=S+256*N/(T+1)
   S=S-64*N/(T+3)
   S=S-4*N/(T+5)
   S=S-4*N/(T+7)
   S=S+1*N/(T+9)
-  PRINT "digit ";INT(S)
+  S=S-32*N/(F+1)
+  S=S-1*N/(F+3)
+  PRINT ;" "INT(S);
   S=S-INT(S)
   S=S*1000
-  N=-N*1000/1024
+  N=-N*250/256
+  F=F+4:T=T+10
 NEXT
+PRINT
 ```
 Notice in both cases that most constants are powers of two which should help.
