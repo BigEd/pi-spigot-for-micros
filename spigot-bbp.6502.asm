@@ -30,7 +30,7 @@ numeratorp = &70 ; 2 byte pointer to numerator bignum
 ; Code origin
 ; ==================================================================================
 
-        ORG &6800
+        ORG &6600
         GUARD &7C00
 
 .code_start
@@ -167,6 +167,30 @@ MACRO _DIVADDSUB bytes,op
         _ADD16  sp, sump, msb_index
 
         LDY     #0
+
+;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
+FOR i,bytes-1,1,-1
+        LDA     divisor+i-1
+        STA     divisor+i
+NEXT
+        STY     divisor+0    ; Y is a constant 0
+FOR j,0,7
+        LSR     divisor+bytes-1
+FOR i,bytes-2,0,-1
+        ROR     divisor+i
+NEXT
+FOR i,bytes-1,0,-1
+        ; Modify the LDX #
+        LDA     divisor+i
+        STA     modify + j*(bytes*14+6)+(bytes-1-i)*8+2
+NEXT
+FOR i,0,bytes-1
+        ; Modify the SBC #
+        LDA     divisor+i
+        STA     modify + j*(bytes*14+6)+i*6+bytes*8+6
+NEXT
+NEXT
+
 .byte_loop
         _CMP16  np, np_end  ; C=1 if arg1 >= arg2
         BCS     byte_loop_more
@@ -182,15 +206,7 @@ NEXT
         LDA     (np),Y
         STA     temp+0
 
-;       B%=0
-;       not needed as we shift a byte 8 times
-
-;       D%=D%*256
-FOR i,bytes-1,1,-1
-        LDA     divisor+i-1
-        STA     divisor+i
-NEXT
-        STY     divisor+0    ; Y is a constant 0
+.modify
 
 ;       Unroll the bit loop
 ;       FOR J%=0 TO 7
@@ -199,16 +215,10 @@ FOR j,0,7
 ;       B%=B%*2
         ASL     A            ; A is used to accumulate the byte of data
 
-;       D%=D% DIV 2
-        LSR     divisor+bytes-1
-FOR i,bytes-2,0,-1
-        ROR     divisor+i
-NEXT
-
 ;       IF T%>=D%
 FOR i,bytes-1,0,-1
-        LDX     divisor+i    ; X is used so as not to corrupt A
-        CPX     temp+i
+        LDX     #&00         ; operand is modified dynamically
+        CPX     temp+i       ; X is used so as not to corrupt A
         BCC     do_subtract
         BNE     bit_loop_next
 NEXT
@@ -218,7 +228,7 @@ NEXT
         SEC
 FOR i,0,bytes-1
         LDA     temp+i
-        SBC     divisor+i
+        SBC     #&00         ; operand is modified dynamically
         STA     temp+i
 NEXT
         TXA                  ; restore A
