@@ -107,9 +107,13 @@ DEF PROCdivaddsub(C%, S%)
   LOCAL T%
   T%=0
   REM S% (shift left) can be 0,2,3,6 or 8
-  IF S% FOR I%=1 TO S%:D%=D%+D%:NEXT
-  FOR I%=M% TO L% STEP -1
-    T%=T%*256+NumeratorP?I%
+  IF S%=0:Z%=256
+  IF S%=2:Z%=64
+  IF S%=3:Z%=32
+  IF S%=6:Z%=4
+  IF S%=8:Z%=1
+  FOR I%=M%-1 TO L%-1 STEP -1
+    T%=T%*256+NumeratorP?(I%+1)
     B%=0
     D%=D%*256
     FOR J%=0 TO 7
@@ -118,6 +122,7 @@ DEF PROCdivaddsub(C%, S%)
       IF T%>=D% T%=T%-D%:B%=B%+1
     NEXT
     IF B%=0 NEXT:ENDPROC
+    B%=B%*Z%
     S%=SumP!I%
     IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
     IF SGNS%<>SGN(SumP!I%) STOP
