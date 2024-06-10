@@ -24,12 +24,15 @@ DIM NumeratorP big + pad: REM bignum numerator
 :
 base=0 : L%=base : REM our bignums can get shorter as we go
 :
-REM our numerator will be rescaled by 10/16 each digit
+REM our numerator will be rescaled by 250/256 each digit
 PROCset(NumeratorP, 4)
 :
 REM the denominator is a (two or three byte) integer
 REM and K is the iteration variable
 K%=0
+F%=0:      REM increments by 4
+T%=0:      REM increments by 10
+OP%=FALSE: REM toggle +/- each iteration
 M%=big-1 : REM leading zeros index for fast forward division
 :
 REM start producing digits!
@@ -38,28 +41,35 @@ REPEAT
   :
   REM compute N/K and add/sub the quotient into S
   REM we adjust the denominator as needed
-  D%=K%+1
-  IF K% PROCdivaddsub(TRUE)
-  first=FALSE
-  D%=D%+K%+7
-  PROCdivaddsub(FALSE)
-  D%=D%+2*K%+12
-  PROCdivaddsub(FALSE)
-  D%=D%+4
-  PROCdivaddsub(FALSE)
+  D%=T%+1
+  IF K% PROCdivaddsub(NOT(OP%))
+  D%=(T%+3)*4
+  PROCdivaddsub(OP%)
+  D%=(T%+5)*64
+  PROCdivaddsub(OP%)
+  D%=(T%+7)*64
+  PROCdivaddsub(OP%)
+  D%=(T%+9)*256
+  PROCdivaddsub(NOT(OP%))
+  D%=(F%+1)*8
+  PROCdivaddsub(OP%)
+  D%=(F%+3)*256
+  PROCdivaddsub(OP%)
   :
-  REM S is updated, now take a digit
-  PRINT CHR$(48+FNextract(SumP));
-  PROCmask(SumP) : REM remove that digit from S
-  PROCx10(SumP)
+  REM S is updated, now take three digits
+  IF K% PRINT;RIGHT$("000"+STR$(SumP!(big-1)),3);:ELSEPRINT;SumP!(big-1);
+  PROCmask(SumP) : REM remove those digits from S
+  PROCx1000(SumP)
   :
   REM now re-scale the numerator
   PROCrescale(NumeratorP)
+  OP%=NOT(OP%)
   IF NumeratorP?M%=0 M%=M%-1
-  :
-  base=base+106/256:L%=base
-  K%=K%+8
-UNTIL K%>=8*digits
+  base=base+3*106/256:L%=base
+  F%=F%+4
+  T%=T%+10
+  K%=K%+3
+UNTIL K%>digits
 :
 PRINT '(TIME-t0) DIV 100"s"
 END
@@ -115,15 +125,12 @@ ENDPROC
 REM --------------------------------------------------
 :
 DEF PROCrescale(BignumP)
-  REM we multiply by 10/16 which is less than one
-  PROCx10(BignumP)
-  LOCAL carry, temp
-  carry=0
-  FOR I%=big-1 TO L% STEP -1
-    temp=BignumP?I%
-    BignumP?I% = (BignumP?I%) DIV 16 + (carry * 16)
-    carry = temp AND 15
+  REM we multiply by 250/256 which is less than one
+  PROCx250(BignumP)
+  FOR I%=L% TO big-1
+    BignumP?I%=BignumP?(I%+1)
   NEXT
+  BignumP?big=0
 ENDPROC
 :
 REM --------------------------------------------------
@@ -140,18 +147,35 @@ DEF PROCmask(SumP)
   REM assumes bignum has 1 byte before the binary point
   I%=big-1
   SumP?I%=0
+  SumP?(I%+1)=0:REM mask extra byte beyond MSB
 ENDPROC
 :
 REM --------------------------------------------------
 :
-DEF PROCx10(BignumP)
+DEF PROCx250(BignumP)
   REM bignum multiply by small number
   REM two byte result from each digit demands a carry
   LOCAL carry, temp
   carry=0
-  FOR I%=L% TO big-1
-    temp=(BignumP?I%)*10 + carry
+  FOR I%=L% TO big: REM extra element allows one byte of carry to propagate
+    temp=(BignumP?I%)*250 + carry
     BignumP?I% = temp AND 255
     carry = temp DIV 256
   NEXT
+  IF carry>0 STOP
+ENDPROC
+:
+REM --------------------------------------------------
+:
+DEF PROCx1000(BignumP)
+  REM bignum multiply by small number
+  REM two byte result from each digit demands a carry
+  LOCAL carry, temp
+  carry=0
+  FOR I%=L% TO big: REM extra element allows one byte of carry to propagate
+    temp=(BignumP?I%)*1000 + carry
+    BignumP?I% = temp AND 255
+    carry = temp DIV 256
+  NEXT
+  IF carry>0 STOP
 ENDPROC
