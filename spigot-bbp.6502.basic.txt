@@ -23,7 +23,7 @@ DIM SumP       big + pad: REM our bignum series accumulator
 DIM NumeratorP big + pad: REM bignum numerator
 :
 HIMEM=&6600
-*LOAD SPIGMC
+*LOAD BPPMC
 
 spigot=&6600
 !&70=NumeratorP

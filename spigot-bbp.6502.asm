@@ -603,7 +603,8 @@ ENDIF
 
 .code_end
 
-SAVE "SPIGMC", code_start, code_end
+SAVE "BPPMC", code_start, code_end
 PUTTEXT "boot", "!BOOT", 0000
-PUTBASIC "spigot-bbp.6502.basic.txt", "SPIG"
-PUTBASIC "spigot-bbp.basic.txt", "SPIGBAS"
+PUTBASIC "spigot-bbp.6502.basic.txt", "BPP"
+PUTBASIC "spigot-bbp.basic.txt", "BPPBAS"
+PUTBASIC "spigot-bellard.basic.txt", "BELLBAS"
