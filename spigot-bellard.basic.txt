@@ -1,0 +1,159 @@
+REM BBP pi calculation like youtu.be/SPTzzSuBFlc
+:
+REM pi to 80 digits is
+REM 31415926535897932384
+REM 62643383279502884197
+REM 16939937510582097494
+REM 45923078164062862089
+:
+t0=TIME
+:
+REM bignums are a list of bytes, LSB first (lowest address)
+REM one byte, the first byte, is the integer part
+:
+digits=8
+big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
+PRINT "Digits = ";digits
+PRINT "   Big = ";big;" bytes"
+:
+REM pad bignums to ensure 4-byte comparison at the end to see zeros
+pad=4
+:
+DIM SumP       big + pad: REM our bignum series accumulator
+DIM NumeratorP big + pad: REM bignum numerator
+:
+base=0 : L%=base : REM our bignums can get shorter as we go
+:
+REM our numerator will be rescaled by 10/16 each digit
+PROCset(NumeratorP, 4)
+:
+REM the denominator is a (two or three byte) integer
+REM and K is the iteration variable
+K%=0
+M%=big-1 : REM leading zeros index for fast forward division
+:
+REM start producing digits!
+PROCset(SumP, 4)
+first=TRUE
+REPEAT
+  :
+  REM compute N/K and add/sub the quotient into S
+  REM we adjust the denominator as needed
+  D%=K%+1
+  IF NOT first PROCdivaddsub(TRUE)
+  first=FALSE
+  D%=D%+K%+7
+  PROCdivaddsub(FALSE)
+  D%=D%+2*K%+12
+  PROCdivaddsub(FALSE)
+  D%=D%+4
+  PROCdivaddsub(FALSE)
+  K%=K%+8
+  :
+  REM S is updated, now take a digit
+  :
+  PRINT CHR$(48+FNextract(SumP));
+  :
+  PROCmask(SumP) : REM remove that digit from S
+  PROCx10(SumP)
+  :
+  REM now re-scale the numerator
+  PROCrescale(NumeratorP)
+  IF NumeratorP?M%=0 M%=M%-1
+  :
+  IF K%>24 base=base+106/256:L%=base
+UNTIL K%>=8*digits
+:
+PRINT '(TIME-t0) DIV 100"s"
+END
+:
+REM --------------------------------------------------
+:
+DEF PROCset(BignumP, C)
+  REM C is a tiny integer - one byte
+  REM integer end of our bignum is at the far end
+  FOR I%=L% TO big-1
+    BignumP?I%=0
+  NEXT
+  BignumP?(big-1)=C
+ENDPROC
+:
+REM --------------------------------------------------
+:
+REM Globals:
+REM   NumeratorP, SumP are bignums
+REM   SumP is a bignum to add or subtract into
+REM   D% is an integer, the number to divide by
+REM   M% is the MSB index into NumeratorP
+REM   L% is the LSB index into NumeratorP
+REM Parameters:
+REM   C% is TRUE for add, FALSE for subtract
+REM Locals:
+REM   I% byte loop counter (M% to L%)
+REM   J% bit loop counter (0 TO 7)
+REM   T% is a 4-byte temporary numerator
+REM   B% is the byte being accumulated
+:
+REM --------------------------------------------------
+:
+DEF PROCdivaddsub(C%)
+  T%=0
+  FOR I%=M% TO L% STEP -1
+    T%=T%*256+NumeratorP?I%
+    B%=0
+    D%=D%*256
+    FOR J%=0 TO 7
+      B%=B%*2
+      D%=D% DIV 2
+      IF T%>=D% T%=T%-D%:B%=B%+1
+    NEXT
+    IF B%=0 NEXT:ENDPROC
+    S%=SumP!I%
+    IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
+    IF SGNS%<>SGN(SumP!I%) STOP
+  NEXT
+ENDPROC
+:
+REM --------------------------------------------------
+:
+DEF PROCrescale(BignumP)
+  REM we multiply by 10/16 which is less than one
+  PROCx10(BignumP)
+  LOCAL carry, temp
+  carry=0
+  FOR I%=big-1 TO L% STEP -1
+    temp=BignumP?I%
+    BignumP?I% = (BignumP?I%) DIV 16 + (carry * 16)
+    carry = temp AND 15
+  NEXT
+ENDPROC
+:
+REM --------------------------------------------------
+:
+DEF FNextract(BignumP)
+  REM a sanity check is that this is 9 at most
+  REM assumes bignum has 1 byte before the binary point
+  =(BignumP?(big-1)) : REM decimal digit, just the top byte
+:
+REM --------------------------------------------------
+:
+DEF PROCmask(SumP)
+  REM set integer part of the bignum to zero
+  REM assumes bignum has 1 byte before the binary point
+  I%=big-1
+  SumP?I%=0
+ENDPROC
+:
+REM --------------------------------------------------
+:
+DEF PROCx10(BignumP)
+  REM bignum multiply by small number
+  REM two byte result from each digit demands a carry
+  LOCAL carry, temp
+  carry=0
+  FOR I%=L% TO big-1
+    temp=(BignumP?I%)*10 + carry
+    BignumP?I% = temp AND 255
+    carry = temp DIV 256
+  NEXT
+ENDPROC
