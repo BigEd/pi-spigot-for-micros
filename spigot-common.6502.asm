@@ -306,8 +306,8 @@ JMP div16  ; +000C
 
 ; base=0 : L%=base : REM our bignums can get shorter as we go
 
-         LDA #0
-         STA lsb_fract
+         LDA    #0
+         STA    lsb_fract
         _MOV16C lsb_index, 0
 
 ; M%=big-1 : REM leading zeros index for fast forward division
@@ -401,12 +401,12 @@ NEXT
         JMP     spigot_loop
 
 .done
-        JMP OSNEWL
+        JMP     OSNEWL
 
 .divadd
-        LDA divisor+2
-        BEQ divadd24
-        JMP divadd32
+        LDA     divisor+2
+        BEQ     divadd24
+        JMP     divadd32
 
 .divadd24
         _DIVADDSUB 3, TRUE
@@ -415,9 +415,9 @@ NEXT
         _DIVADDSUB 4, TRUE
 
 .divsub
-        LDA divisor+2
-        BEQ divsub24
-        JMP divsub32
+        LDA     divisor+2
+        BEQ     divsub24
+        JMP     divsub32
 
 .divsub24
         _DIVADDSUB 3, FALSE
@@ -449,30 +449,30 @@ carry = temp + 1
         BCC     ok
         RTS
 .ok
-        LDY    np      ; use Y as the LSB of the loop
-        LDA    #0
-        STA    carry   ; force carry byte to zero on first iteration
-        STA    np
+        LDY     np      ; use Y as the LSB of the loop
+        LDA     #0
+        STA     carry   ; force carry byte to zero on first iteration
+        STA     np
         CLC
 .loop
-        LDA    (np), Y ; bitnum byte
+        LDA     (np), Y ; bitnum byte
         TAX
-        LDA    mult10_table_lsb, X
-        ADC    carry   ; C=1 from this add will be handled next time around
-        STA    (np), Y
-        LDA    mult10_table_msb, X
-        STA    carry
+        LDA     mult10_table_lsb, X
+        ADC     carry   ; C=1 from this add will be handled next time around
+        STA     (np), Y
+        LDA     mult10_table_msb, X
+        STA     carry
         INY
-        BNE    compare
-        INC    np+1
+        BNE     compare
+        INC     np+1
 .compare
         ; An equailty comparison is cheaper, but needs a range check up front
         TYA
-        EOR    np_end  ; need to preserve carry, so can't use CPY
-        BNE    loop
-        LDA    np+1
-        EOR    np_end+1
-        BNE    loop
+        EOR     np_end  ; need to preserve carry, so can't use CPY
+        BNE     loop
+        LDA     np+1
+        EOR     np_end+1
+        BNE     loop
         RTS
 }
 
@@ -515,11 +515,11 @@ carry = temp + 1
 .skip
         DEY
         ; An equailty comparison is cheaper, but needs a range check up front
-        CPY    np_end
-        BNE    loop
-        LDA    np+1
-        CMP    np_end+1
-        BNE    loop
+        CPY     np_end
+        BNE     loop
+        LDA     np+1
+        CMP     np_end+1
+        BNE     loop
         RTS
 }
 
@@ -596,7 +596,7 @@ IF DEBUG
         ADC     #&06
 .hex2
         ADC     #&30
-        JMP    OSWRCH
+        JMP     OSWRCH
 }
 
 ENDIF
