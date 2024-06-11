@@ -605,6 +605,6 @@ ENDIF
 
 SAVE "BPPMC", code_start, code_end
 PUTTEXT "boot", "!BOOT", 0000
-PUTBASIC "spigot-bbp.6502.basic.txt", "BPP"
+PUTBASIC "spigot-common.6502.basic.txt", "BPP"
 PUTBASIC "spigot-bbp.basic.txt", "BPPBAS"
 PUTBASIC "spigot-bellard.basic.txt", "BELLBAS"
