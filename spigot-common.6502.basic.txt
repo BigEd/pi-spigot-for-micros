@@ -1,31 +1,48 @@
-REM BBP pi calculation like youtu.be/SPTzzSuBFlc
-:
-REM pi to 80 digits is
-REM 31415926535897932384
-REM 62643383279502884197
-REM 16939937510582097494
-REM 45923078164062862089
-:
-REM bignums are a list of bytes, LSB first (lowest address)
-REM one byte, the first byte, is the integer part
-:
 REM INPUT "Digits ",digits
-digits=3000
+:
+C%=&6600
+HIMEM=C%
+LOMEM=C%-&200
+code=C%
+:
+*LOAD SPIGMC
+:
+max_tests%=10
+DIM digits(max_tests%), timings(max_tests%)
+num_tests%=0
+REPEAT
+READ d
+PROCtest(d)
+UNTIL d=0
+:
+PRINT '"Summary for ";$(code+3)
+FOR test%=0 TO num_tests%-1
+PRINT digits(test%), timings(test%);"s"
+NEXT
+END
+:
+DATA 80, 200, 400, 800, 100, 1000, 3000, 0
+:
+REM --------------------------------------------------
+:
+DEF PROCtest(digits)
+:
+IF digits=0 ENDPROC
 :
 big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
+PRINT $(code+3)
 PRINT "Digits = ";digits
 PRINT "   Big = ";big;" bytes"
 :
 REM pad bignums to ensure 4-byte comparison at the end to see zeros
 pad=4
 :
-DIM SumP       big + pad: REM our bignum series accumulator
-DIM NumeratorP big + pad: REM bignum numerator
+REM Manually allocate memory so we can re-allocate
+IF (LOMEM - TOP) < (big+pad)*2 PRINT "Not enough RAM for ";digits;" digits":END
+mem=TOP
+SumP       = mem:mem=mem+big+pad
+NumeratorP = mem:mem=mem+big+pad
 :
-HIMEM=&6600
-*LOAD BPPMC
-
-spigot=&6600
 !&70=NumeratorP
 !&72=SumP
 !&74=big
@@ -35,11 +52,13 @@ PROCset(NumeratorP, 4)
 PROCset(SumP, 4)
 :
 t0=TIME
-:
-CALL spigot
-:
-PRINT '(TIME-t0) / 100"s"
-END
+CALL code
+t1=TIME
+PRINT '(t1-t0) / 100"s"
+digits(num_tests%)=digits
+timings(num_tests%)=(t1-t0)/100
+num_tests%=num_tests%+1
+ENDPROC
 :
 REM --------------------------------------------------
 :
@@ -50,4 +69,5 @@ DEF PROCset(BignumP, C)
     BignumP?I%=0
   NEXT
   BignumP?(big-1)=C
+  BignumP!big=0
 ENDPROC

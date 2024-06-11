@@ -20,11 +20,19 @@ numeratorp = &70 ; 2 byte pointer to numerator bignum
  lsb_fract = &59 ; 1 byte
  lsb_index = &5A ; 2 byte index into numerator/sum
  msb_index = &5C ; 2 byte index into numerator/sum
-                 ; 2 bytes spare
+ saved_sp  = &5E ; 1 byte
+                 ; 1 bytes spare
 
    divisor = &60 ; 4 bytes / 32 bit unsigned integer
-        k  = &64 ; 4 bytes / 32 bit unsigned integer
-      temp = &68 ; 4 bytes / 32 bit unsigned integer
+      temp = &64 ; 4 bytes / 32 bit unsigned integer
+IF BELLARD
+   LSB_INC = 106*3
+         f = &68 ; 4 bytes / 32 bit unsigned integer
+         t = &6c ; 4 bytes / 32 bit unsigned integer
+ELSE
+   LSB_INC = 106
+         k = &68 ; 4 bytes / 32 bit unsigned integer
+ENDIF
 
 ; ==================================================================================
 ; Code origin
@@ -61,9 +69,9 @@ MACRO _CMP16 arg1, arg2  ; C=1 if arg1 >= arg2
         SBC arg2+1
 ENDMACRO
 
-MACRO _MOV16C result, arg1
+MACRO _ZERO16 result
+        LDA #0
 FOR I,0,1
-        LDA #((arg1 >> (I*8)) AND &FF)
         STA result+I
 NEXT
 ENDMACRO
@@ -113,9 +121,9 @@ FOR I,1,3
 NEXT
 ENDMACRO
 
-MACRO _MOV32C result, arg1
+MACRO _ZERO32 result
+        LDA #0
 FOR I,0,3
-        LDA #((arg1 >> (I*8)) AND &FF)
         STA result+I
 NEXT
 ENDMACRO
@@ -138,6 +146,82 @@ FOR I,0,3
 NEXT
 ENDMACRO
 
+MACRO _SHL32 result, count
+IF count=8
+FOR I,2,0,-1
+        LDA result+I
+        STA result+I+1
+NEXT
+        LDA #0
+        STA result
+ELSE
+        LDX #count
+.loop
+        ASL result
+FOR I,1,3
+        ROL result+I
+NEXT
+        DEX
+        BNE loop
+ENDIF
+
+ENDMACRO
+
+; ==================================================================================
+; TABLE MULTIPLY MACRO
+; ==================================================================================
+
+; DEF PROCx10(BignumP)
+;   REM bignum multiply by small number
+;   REM two byte result from each digit demands a carry
+;   LOCAL carry, temp
+;   carry=0
+;   FOR I%=L% TO big-1
+;     temp=(BignumP?I%)*10 + carry
+;     BignumP?I% = temp AND 255
+;     carry = temp DIV 256
+;   NEXT
+; ENDPROC
+
+carry = temp + 1
+
+MACRO _MULTIPLY table, extra
+        _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
+IF extra
+        _ADD16C np_end, np_end, extra ; any extra bytes beyond the MSB?
+ENDIF
+        _ADD16  np, np, lsb_index ; np is the first element of work
+        _CMP16  np, np_end        ; range check up front to be safe
+        BCC     ok
+        RTS
+.ok
+        LDY     np      ; use Y as the LSB of the loop
+        LDA     #0
+        STA     carry   ; force carry byte to zero on first iteration
+        STA     np
+        CLC
+.loop
+        LDA     (np), Y ; bitnum byte
+        TAX
+        LDA     table, X
+        ADC     carry   ; C=1 from this add will be handled next time around
+        STA     (np), Y
+        LDA     table+&100, X
+        STA     carry
+        INY
+        BNE     compare
+        INC     np+1
+.compare
+        ; An equailty comparison is cheaper, but needs a range check up front
+        TYA
+        EOR     np_end  ; need to preserve carry, so can't use CPY
+        BNE     loop
+        LDA     np+1
+        EOR     np_end+1
+        BNE     loop
+        RTS
+ENDMACRO
+
 ; ==================================================================================
 ; DIVADDSUB MACRO
 ; ==================================================================================
@@ -158,7 +242,7 @@ ENDMACRO
 MACRO _DIVADDSUB bytes,op
 
 ;   T%=0
-        _MOV32C temp, 0
+        _ZERO32 temp
 
 ;   FOR I%=M% TO L% STEP -1
 
@@ -289,43 +373,131 @@ ENDMACRO
 ; =============================================================
 
 ; Start with a jump block to aid testing
-
 JMP spigot ; +0000
-JMP divadd ; +0003
-JMP divsub ; +0006
-JMP mult10 ; +0009
-JMP div16  ; +000C
+
+; Embed a title into the machine code
+IF BELLARD
+EQUS "Bellard Pi Spigot"
+ELSE
+EQUS "BBP Pi Spigot"
+ENDIF
+EQUB 13
 
 .spigot
+        TSX
+        STX     saved_sp
+
 ; sp_end is a static pointer to the MSB of SumP where digits will appear
         _ADD16  sp_end, sump, big
         _ADD16C sp_end, sp_end, &FFFF
 
+IF BELLARD
+; F%=0
+; T%=0
+        _ZERO32 f
+        _ZERO32 t
+ELSE
 ; K%=0
-        _MOV32C k, 0
+        _ZERO32 k
+
+ENDIF
 
 ; base=0 : L%=base : REM our bignums can get shorter as we go
 
          LDA    #0
          STA    lsb_fract
-        _MOV16C lsb_index, 0
+        _ZERO16 lsb_index
 
 ; M%=big-1 : REM leading zeros index for fast forward division
 
         _MOV16  msb_index, big
         _ADD16C msb_index, msb_index, &FFFF
 
-; ndigits *= 8 to allow direct comparison with K
-FOR I,0,2
-        ASL     ndigits
-        ROL     ndigits+1
-        ROL     ndigits+2
-        ROL     ndigits+3
-NEXT
-
 ; REPEAT
 
 .spigot_loop
+
+IF BELLARD
+
+;   D%=T%+1
+;   IF T% PROCdivaddsub(NOT(OP%))
+;   D%=(T%+3)*4
+;   PROCdivaddsub(OP%)
+;   D%=(T%+5)*64
+;   PROCdivaddsub(OP%)
+;   D%=(T%+7)*64
+;   PROCdivaddsub(OP%)
+;   D%=(T%+9)*256
+;   PROCdivaddsub(NOT(OP%))
+;   D%=(F%+1)*8
+;   PROCdivaddsub(OP%)
+;   D%=(F%+3)*256
+;   PROCdivaddsub(OP%)
+
+        _ADD32C divisor, t, 1
+        _TST32  t
+        BEQ     skipfirst
+        JSR     divadd
+.skipfirst
+        _ADD32C divisor, t, 3
+        _SHL32  divisor, 2
+        JSR     divsub
+        _ADD32C divisor, t, 5
+        _SHL32  divisor, 6
+        JSR     divsub
+        _ADD32C divisor, t, 7
+        _SHL32  divisor, 6
+        JSR     divsub
+        _ADD32C divisor, t, 9
+        _SHL32  divisor, 8
+        JSR     divadd
+        _ADD32C divisor, f, 1
+        _SHL32  divisor, 3
+        JSR     divsub
+        _ADD32C divisor, f, 3
+        _SHL32  divisor, 8
+        JSR     divsub
+
+;  REM S is updated, now take three digits
+;  IF K% PRINT;RIGHT$("000"+STR$(SumP!(big-1)),3);:ELSEPRINT;SumP!(big-1);
+;  PROCmask(SumP) : REM remove those digits from S
+;  PROCx1000(SumP)
+
+        LDX     #0
+        LDY     #0
+        LDA     (sp_end),Y
+        STA     temp
+        TXA
+        STA     (sp_end),Y
+        INY
+        LDA     (sp_end),Y
+        STA     temp+1
+        TXA
+        STA     (sp_end),Y
+
+;; Supress first two leading zeros
+        _TST32  t
+        BNE     p1
+        LDA     temp
+        ORA     #'0'
+        JSR     print_digit
+        JMP     p2
+.p1
+        JSR     print_decimal
+.p2
+
+        _MOV16  np, sump
+        JSR     mult4 ; uses np as the argument pointer
+        _MOV16  np, sump
+        JSR     mult250 ; uses np as the argument pointer
+
+;   PROCrescale(NumeratorP)
+        _MOV16  np, numeratorp
+        JSR     mult250 ; uses np as the argument pointer
+        _MOV16  np, numeratorp
+        JSR     div256  ; uses np as the argument pointer
+
+ELSE
 
 ;   D%=K%+1
 ;   IF NOT first PROCdivaddsub(TRUE)
@@ -336,8 +508,6 @@ NEXT
 ;   PROCdivaddsub(FALSE)
 ;   D%=D%+4
 ;   PROCdivaddsub(FALSE)
-;   K%=K%+8
-
         _ADD32C divisor, k, 1
         _TST32  k
         BEQ     skipfirst
@@ -352,7 +522,6 @@ NEXT
         JSR     divsub
         _ADD32C divisor, divisor, 4
         JSR     divsub
-        _ADD32C k, k, 8
 
 ;   PRINT CHR$(48+FNextract(SumP));
 ;   PROCmask(SumP) : REM remove that digit from S
@@ -360,7 +529,7 @@ NEXT
         LDY     #0
         LDA     (sp_end),Y
         ORA     #48
-        JSR     OSWRCH
+        JSR     print_digit
         TYA
         STA     (sp_end),Y
 
@@ -373,6 +542,8 @@ NEXT
         JSR     mult10 ; uses np as the argument pointer
         _MOV16  np, numeratorp
         JSR     div16  ; uses np as the argument pointer
+
+ENDIF
 
 ;   IF NumeratorP?M%=0 M%=M%-1
         _MOV16  np, numeratorp
@@ -388,22 +559,38 @@ NEXT
 {
        CLC
        LDA      lsb_fract
-       ADC      #106
+       ADC      #(LSB_INC MOD 256)
        STA      lsb_fract
+       LDA      lsb_index
+       ADC      #(LSB_INC DIV 256)
+       STA      lsb_index
        BCC      skip
-       _INC16   lsb_index
+       INC      lsb_index+1
 .skip
 }
 
-; UNTIL K%>=8*digits
-        _CMP32  k, ndigits ; C=1 if arg1 >= arg2
-        BCS     done
+IF BELLARD
+;   F%=F%+4
+;   T%=T%+10
+        _ADD32C f, f, 4
+        _ADD32C t, t, 10
+ELSE
+;   K%=K%+8
+        _ADD32C k, k, 8
+ENDIF
+
+; UNTIL FALSE
+; exit now happens in print_digit
         JMP     spigot_loop
 
-.done
-        JMP     OSNEWL
-
 .divadd
+IF BELLARD
+        LDA     f
+        AND     #&04
+        BEQ     divadd1
+        JMP     divsub1
+.divadd1
+ENDIF
         LDA     divisor+2
         BEQ     divadd24
         JMP     divadd32
@@ -415,6 +602,13 @@ NEXT
         _DIVADDSUB 4, TRUE
 
 .divsub
+IF BELLARD
+        LDA     f
+        AND     #&04
+        BEQ     divsub1
+        JMP     divadd1
+.divsub1
+ENDIF
         LDA     divisor+2
         BEQ     divsub24
         JMP     divsub32
@@ -425,57 +619,111 @@ NEXT
 .divsub32
         _DIVADDSUB 4, FALSE
 
-; DEF PROCx10(BignumP)
-;   REM bignum multiply by small number
-;   REM two byte result from each digit demands a carry
-;   LOCAL carry, temp
-;   carry=0
-;   FOR I%=L% TO big-1
-;     temp=(BignumP?I%)*10 + carry
-;     BignumP?I% = temp AND 255
-;     carry = temp DIV 256
-;   NEXT
-; ENDPROC
-;
-; Called with np pointing to either SumP or NumeratorP
-
-carry = temp + 1
-
-.mult10
+.print_digit
 {
-        _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
-        _ADD16  np, np, lsb_index ; np is the first element of work
+        JSR     OSWRCH
+        _ADD32C ndigits, ndigits, &FFFFFFFF
+        _TST32  ndigits
+        BNE     return
+        JSR     OSNEWL
+        LDX     saved_sp
+        TXS
+.return
+        RTS
+}
+
+IF BELLARD
+
+.print_decimal
+{
+        LDY     #2
+.Lp1
+        LDX     #'0'-1
+        SEC
+.Lp2
+        LDA     temp
+        SBC     Tens,Y
+        STA     temp
+        LDA     temp+1
+        SBC     #0
+        STA     temp+1
+        INX
+        BCS     Lp2
+        LDA     temp
+        ADC     Tens,Y
+        STA     temp
+        BCC     skip
+        INC     temp+1
+.skip
+        TXA
+        JSR     print_digit
+        DEY
+        BPL     Lp1
+        RTS
+.Tens
+        EQUB    1
+        EQUB    10
+        EQUB    100
+}
+
+.mult4
+        _MULTIPLY mult4_table, 1
+
+.mult250
+        _MULTIPLY mult250_table,1
+
+;  FOR I%=L% TO big-1
+;    BignumP?I%=BignumP?(I%+1)
+;  NEXT
+;  BignumP?big=0
+
+.div256
+{
+        _ADD16  np_end, np, big
+        _ADD16  np, np, lsb_index
         _CMP16  np, np_end        ; range check up front to be safe
         BCC     ok
         RTS
 .ok
-        LDY     np      ; use Y as the LSB of the loop
-        LDA     #0
-        STA     carry   ; force carry byte to zero on first iteration
-        STA     np
-        CLC
+        LDY     #1
+        LDX     #0
 .loop
-        LDA     (np), Y ; bitnum byte
-        TAX
-        LDA     mult10_table_lsb, X
-        ADC     carry   ; C=1 from this add will be handled next time around
-        STA     (np), Y
-        LDA     mult10_table_msb, X
-        STA     carry
-        INY
-        BNE     compare
-        INC     np+1
-.compare
-        ; An equailty comparison is cheaper, but needs a range check up front
-        TYA
-        EOR     np_end  ; need to preserve carry, so can't use CPY
+        LDA     (np), Y
+        STA     (np, X)
+        _INC16  np
+        LDA     np
+        CMP     np_end
         BNE     loop
         LDA     np+1
-        EOR     np_end+1
+        CMP     np_end+1
         BNE     loop
+        LDA     #0
+        STA     (np, X)
         RTS
 }
 
+ALIGN &100
+
+.mult4_table
+FOR I,0,255
+EQUB (I*4) MOD &100
+NEXT
+FOR I,0,255
+EQUB (I*4) DIV &100
+NEXT
+
+.mult250_table
+FOR I,0,255
+EQUB (I*250) MOD &100
+NEXT
+FOR I,0,255
+EQUB (I*250) DIV &100
+NEXT
+
+ELSE
+
+.mult10
+        _MULTIPLY  mult10_table, 0
 
 ; DEF PROCdiv16(BignumP)
 ;   LOCAL carry, temp
@@ -525,12 +773,10 @@ carry = temp + 1
 
 ALIGN &100
 
-.mult10_table_lsb
+.mult10_table
 FOR I,0,255
 EQUB (I*10) MOD &100
 NEXT
-
-.mult10_table_msb
 FOR I,0,255
 EQUB (I*10) DIV &100
 NEXT
@@ -544,6 +790,8 @@ NEXT
 FOR I,0,255
 EQUB (I DIV 16)
 NEXT
+
+ENDIF
 
 IF DEBUG
 
@@ -603,8 +851,12 @@ ENDIF
 
 .code_end
 
-SAVE "BPPMC", code_start, code_end
 PUTTEXT "boot", "!BOOT", 0000
-PUTBASIC "spigot-common.6502.basic.txt", "BPP"
-PUTBASIC "spigot-bbp.basic.txt", "BPPBAS"
-PUTBASIC "spigot-bellard.basic.txt", "BELLBAS"
+SAVE "SPIGMC", code_start, code_end
+PUTBASIC "spigot-common.6502.basic.txt", "SPIG"
+
+IF BELLARD
+PUTBASIC "spigot-bellard.basic.txt", "SPIGBAS"
+ELSE
+PUTBASIC "spigot-bbp.basic.txt", "SPIGBAS"
+ENDIF
