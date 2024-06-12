@@ -42,8 +42,8 @@ REM pad bignums to ensure 4-byte comparison at the end to see zeros
 pad=4
 :
 REM Manually allocate memory so we can re-allocate
-IF (LOMEM - TOP) < (big+pad)*2 PRINT "Not enough RAM for ";digits;" digits":END
-mem=TOP
+IF (LOMEM-TOP-pad) < (big+pad)*2 PRINT "Not enough RAM for ";digits;" digits":END
+mem=TOP+pad
 SumP       = mem:mem=mem+big+pad
 NumeratorP = mem:mem=mem+big+pad
 :
