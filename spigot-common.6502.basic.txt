@@ -17,7 +17,10 @@ UNTIL d=0
 :
 PRINT '"Summary for ";$(code+3)
 FOR test%=0 TO num_tests%-1
-PRINT digits(test%), timings(test%);"s"
+@%=&90A
+PRINT digits(test%);
+@%=&2020A
+PRINT timings(test%);"s"
 NEXT
 END
 :
@@ -30,6 +33,7 @@ DEF PROCtest(digits)
 IF digits=0 ENDPROC
 :
 big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
+@%=&90A
 PRINT $(code+3)
 PRINT "Digits = ";digits
 PRINT "   Big = ";big;" bytes"
@@ -54,6 +58,7 @@ PROCset(SumP, 4)
 t0=TIME
 CALL code
 t1=TIME
+@%=&2020A
 PRINT '(t1-t0) / 100"s"
 digits(num_tests%)=digits
 timings(num_tests%)=(t1-t0)/100
