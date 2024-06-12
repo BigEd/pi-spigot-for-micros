@@ -393,8 +393,8 @@ NEXT
 NEXT
 
 ;     IF B%=0 NEXT:ENDPROC
-        CMP     #0
-        BEQ     byte_loop_next
+;        CMP     #0
+;        BEQ     byte_loop_next
 
 ;     IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
 
