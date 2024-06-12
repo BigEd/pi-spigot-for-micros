@@ -1,6 +1,6 @@
 REM INPUT "Digits ",digits
 :
-C%=&6600
+C%=&6000
 HIMEM=C%
 LOMEM=C%-&200
 code=C%

@@ -1,6 +1,25 @@
 OSWRCH = &FFEE
 OSNEWL = &FFE7
 
+; Optimization options, which add lots of extra code
+
+; Include versions of DIVADD/SUB with 24-bit maths for small divisors
+; Bellard 1000 runs 17.9% faster
+;     BBP 1000 runs 28.0% faster
+OPTIMIZE_DIV24 = TRUE
+
+; Include versions of DIVADD/SUB with 16-bit maths for very small divisors
+; Bellard 1000 runs 1.0% faster
+;     BBP 1000 runs 1.0% faster
+; (this depends on OPTIMIZE_DIV24 being TRUE and is ignored otherwise)
+OPTIMIZE_DIV16 = FALSE
+
+; Optimize implemenation of shifts where the divisor LSB ends up as zero
+; Bellard 1000 runs 1.7% faster
+;     BBP 1000 runs 1.1% slower
+; (this has most benefit when OPTIMIZE_DIV24 and OPTIMIZE_DIV16 are TRUE)
+OPTIMIZE_SHIFT = FALSE
+
 DEBUG = FALSE
 
 ; Parameters
@@ -20,8 +39,8 @@ numeratorp = &70 ; 2 byte pointer to numerator bignum
  lsb_fract = &59 ; 1 byte
  lsb_index = &5A ; 2 byte index into numerator/sum
  msb_index = &5C ; 2 byte index into numerator/sum
- saved_sp  = &5E ; 1 byte
-                 ; 1 bytes spare
+  saved_sp = &5E ; 1 byte saved BASIC stack pointer
+    offset = &5F ; 1 byte offset into SumP array (deals with shift of 8)
 
    divisor = &60 ; 4 bytes / 32 bit unsigned integer
       temp = &64 ; 4 bytes / 32 bit unsigned integer
@@ -38,7 +57,7 @@ ENDIF
 ; Code origin
 ; ==================================================================================
 
-        ORG &6600
+        ORG &6000
         GUARD &7C00
 
 .code_start
@@ -146,26 +165,72 @@ FOR I,0,3
 NEXT
 ENDMACRO
 
+; After the shift, if the least significant byte of the divisor is
+; zero, then we can handle this case more efficiently. This will be
+; true if there 8-count zero bits at the least significant end of the
+; divisor.
+
+IF OPTIMIZE_SHIFT
+
 MACRO _SHL32 result, count
-IF count=8
-FOR I,2,0,-1
-        LDA result+I
-        STA result+I+1
-NEXT
+IF count=0
+        LDX #1
+ELIF count=8
+        LDX #0
+ELSE
+        LDA #((1<<(8-count))-1)  ; a bit mask of 8-count ones
+        BIT result               ; AND with LSB of result
+        BNE slow                 ; Z=1 if all bits are zero
+        LDX #8-count
+.shr_loop
+        LSR result+3
+        ROR result+2
+        ROR result+1
+        ROR result
+        DEX
+        BNE shr_loop
+        BEQ done                ; X=0 -> offset
+.slow
+        LDX #count
+.shl_loop
+        ASL result
+        ROL result+1
+        ROL result+2
+        ROL result+3
+        DEX
+        BNE shl_loop
+        INX                     ; X=1 -> offset
+ENDIF
+.done
+        STX offset
+ENDMACRO
+
+ELSE
+
+MACRO _SHL32 result, count
+IF count=0
+ELIF count=8
+        LDA result+2
+        STA result+3
+        LDA result+1
+        STA result+2
+        LDA result+0
+        STA result+1
         LDA #0
-        STA result
+        STA result+0
 ELSE
         LDX #count
 .loop
-        ASL result
-FOR I,1,3
-        ROL result+I
-NEXT
+        ASL result+0
+        ROL result+1
+        ROL result+2
+        ROL result+3
         DEX
         BNE loop
 ENDIF
-
 ENDMACRO
+
+ENDIF
 
 ; ==================================================================================
 ; TABLE MULTIPLY MACRO
@@ -249,7 +314,9 @@ MACRO _DIVADDSUB bytes,op
         _ADD16  np, numeratorp, msb_index
         _ADD16  np_end, numeratorp, lsb_index
         _ADD16  sp, sump, msb_index
-
+IF OPTIMIZE_SHIFT
+        _ADD16C sp, sp, &FFFF
+ENDIF
         LDY     #0
 
 ;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
@@ -287,6 +354,9 @@ FOR i,bytes-1,1,-1
         LDA     temp+i-1
         STA     temp+i
 NEXT
+IF OPTIMIZE_SHIFT
+        LDY     #0
+ENDIF
         LDA     (np),Y
         STA     temp+0
 
@@ -328,6 +398,9 @@ NEXT
 
 ;     IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
 
+IF OPTIMIZE_SHIFT
+        LDY     offset
+ENDIF
 IF (op)
         ; Add byte
         CLC
@@ -340,7 +413,6 @@ IF (op)
         ADC     (sp),Y
         STA     (sp),Y
         BCS     cloop
-        LDY     #0
 ELSE
         ; Subtract byte
         SEC
@@ -355,9 +427,10 @@ ELSE
         SBC     #0
         STA     (sp),Y
         BCC     cloop
+ENDIF
+IF NOT(OPTIMIZE_SHIFT)
         LDY     #0
 ENDIF
-
 ;       NEXT
 
 .byte_loop_next
@@ -434,9 +507,10 @@ IF BELLARD
 ;   D%=(F%+3)*256
 ;   PROCdivaddsub(OP%)
 
-        _ADD32C divisor, t, 1
         _TST32  t
         BEQ     skipfirst
+        _ADD32C divisor, t, 1
+        _SHL32  divisor, 0
         JSR     divadd
 .skipfirst
         _ADD32C divisor, t, 3
@@ -508,19 +582,20 @@ ELSE
 ;   PROCdivaddsub(FALSE)
 ;   D%=D%+4
 ;   PROCdivaddsub(FALSE)
-        _ADD32C divisor, k, 1
         _TST32  k
         BEQ     skipfirst
+        _ADD32C divisor, k, 1
+        _SHL32  divisor, 0
         JSR     divadd
 .skipfirst
-        _ADD32  divisor, divisor, k
-        _ADD32C divisor, divisor, 7
+        _ADD32C divisor, k, 4
+        _SHL32  divisor, 1
         JSR     divsub
-        _ADD32  divisor, divisor, k
-        _ADD32  divisor, divisor, k
-        _ADD32C divisor, divisor, 12
+        _ADD32C divisor, k, 5
+        _SHL32  divisor, 2
         JSR     divsub
-        _ADD32C divisor, divisor, 4
+        _ADD32C divisor, k, 6
+        _SHL32  divisor, 2
         JSR     divsub
 
 ;   PRINT CHR$(48+FNextract(SumP));
@@ -583,6 +658,10 @@ ENDIF
 ; exit now happens in print_digit
         JMP     spigot_loop
 
+; ==================================================================================
+; DIVADD routines
+; ==================================================================================
+
 .divadd
 IF BELLARD
         LDA     f
@@ -591,15 +670,32 @@ IF BELLARD
         JMP     divsub1
 .divadd1
 ENDIF
+
+IF OPTIMIZE_DIV24
         LDA     divisor+2
-        BEQ     divadd24
+        BEQ     divadd2
         JMP     divadd32
+.divadd2
+
+IF OPTIMIZE_DIV16
+        LDA     divisor+1
+        BEQ     divadd16
+        JMP     divadd24
+.divadd16
+        _DIVADDSUB 2, TRUE
+ENDIF
 
 .divadd24
         _DIVADDSUB 3, TRUE
 
+ENDIF
+
 .divadd32
         _DIVADDSUB 4, TRUE
+
+; ==================================================================================
+; DIVSUB routines
+; ==================================================================================
 
 .divsub
 IF BELLARD
@@ -609,12 +705,25 @@ IF BELLARD
         JMP     divadd1
 .divsub1
 ENDIF
+
+IF OPTIMIZE_DIV24
         LDA     divisor+2
-        BEQ     divsub24
+        BEQ     divsub2
         JMP     divsub32
+.divsub2
+
+IF OPTIMIZE_DIV16
+        LDA     divisor+1
+        BEQ     divsub16
+        JMP     divsub24
+
+.divsub16
+        _DIVADDSUB 2, FALSE
+ENDIF
 
 .divsub24
         _DIVADDSUB 3, FALSE
+ENDIF
 
 .divsub32
         _DIVADDSUB 4, FALSE
