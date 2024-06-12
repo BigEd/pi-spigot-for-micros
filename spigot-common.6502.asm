@@ -304,7 +304,10 @@ ENDMACRO
 ;
 ; DEF PROCdivaddsub(C%)
 
-MACRO _DIVADDSUB bytes,op
+; Factor out divide initialization as a common subroutine to save code space
+; (it's a macro that's only instantiated once)
+
+MACRO _DIVINIT
 
 ;   T%=0
         _ZERO32 temp
@@ -318,6 +321,14 @@ IF OPTIMIZE_SHIFT
         _ADD16C sp, sp, &FFFF
 ENDIF
         LDY     #0
+        RTS
+
+ENDMACRO
+
+MACRO _DIVADDSUB bytes,op
+
+; This calls the _DIVINIT code as a subroutine
+        JSR     divinit
 
 ;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
 FOR i,bytes-1,1,-1
@@ -335,9 +346,14 @@ FOR i,bytes-1,0,-1
         LDA     divisor+i
         STA     modify + j*(bytes*14+6)+(bytes-1-i)*8+2
 NEXT
+        ; Cunning optimization:
+        ;   SBC # literal is divisor-1 which allows an SEC to be
+        ;   be eliminated from the inner loop, which is a 2% speed-up
+        CLC
 FOR i,0,bytes-1
         ; Modify the SBC #
         LDA     divisor+i
+        SBC     #0
         STA     modify + j*(bytes*14+6)+i*6+bytes*8+6
 NEXT
 NEXT
@@ -376,10 +392,10 @@ FOR i,bytes-1,0,-1
         BCC     do_subtract
         BNE     bit_loop_next
 NEXT
+        CLC
 ;       T%=T%-D%:B%=B%+1
 .do_subtract
         TAX                  ; save A
-        SEC
 FOR i,0,bytes-1
         LDA     temp+i
         SBC     #&00         ; operand is modified dynamically
@@ -661,6 +677,9 @@ ENDIF
 ; ==================================================================================
 ; DIVADD routines
 ; ==================================================================================
+
+.divinit
+       _DIVINIT
 
 .divadd
 IF BELLARD
