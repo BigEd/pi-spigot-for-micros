@@ -431,7 +431,7 @@ IF (op)
         BCS     cloop
 ELSE
         ; Subtract byte
-        SEC
+        ; SEC not needed because it's already set (assuming no arithmetic overflow)
         STA     byte
         LDA     (sp),Y
         SBC     byte
