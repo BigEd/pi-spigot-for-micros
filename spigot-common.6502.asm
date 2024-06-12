@@ -12,13 +12,13 @@ OPTIMIZE_DIV24 = TRUE
 ; Bellard 1000 runs 1.0% faster
 ;     BBP 1000 runs 1.0% faster
 ; (this depends on OPTIMIZE_DIV24 being TRUE and is ignored otherwise)
-OPTIMIZE_DIV16 = FALSE
+OPTIMIZE_DIV16 = TRUE
 
 ; Optimize implemenation of shifts where the divisor LSB ends up as zero
 ; Bellard 1000 runs 1.7% faster
 ;     BBP 1000 runs 1.1% slower
 ; (this has most benefit when OPTIMIZE_DIV24 and OPTIMIZE_DIV16 are TRUE)
-OPTIMIZE_SHIFT = FALSE
+OPTIMIZE_SHIFT = BELLARD
 
 DEBUG = FALSE
 
