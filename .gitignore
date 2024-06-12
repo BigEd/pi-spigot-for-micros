@@ -2,4 +2,5 @@
 #*
 not_in_get/
 *.log
+*.labels
 *.ssd
