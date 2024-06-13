@@ -597,9 +597,7 @@ IF BELLARD
 
 ;   PROCrescale(NumeratorP)
         _MOV16  np, numeratorp
-        JSR     mult250 ; uses np as the argument pointer
-        _MOV16  np, numeratorp
-        JSR     div256  ; uses np as the argument pointer
+        JSR     rescale250256 ; uses np as the argument pointer
 
 ELSE
 
@@ -849,41 +847,46 @@ IF BELLARD
 .mult250
         _MULTIPLY mult250_table,1
 
-;  FOR I%=L% TO big-1
-;    BignumP?I%=BignumP?(I%+1)
-;  NEXT
-;  BignumP?big=0
 
-.div256
+
+.rescale250256
 {
-        _ADD16  np_end, np, big
-        _ADD16  np, np, lsb_index
+        _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
+        _ADD16  np, np, lsb_index ; np is the first element of work
         _CMP16  np, np_end        ; range check up front to be safe
         BCC     ok
         RTS
 .ok
-        LDY     np
+        LDY     np                ; use Y as the LSB of the loop
         LDA     np+1
         STA     oplda+2
         STA     opsta+2
+        LDA     (np), Y
+        TAX
+        LDA     mult250_table+&100, X
+        STA     carry             ; fill the pipeline
+        CLC
 .loop
 .oplda
-        LDA     &AA01, Y
+        LDA     &AA01, Y          ; operand is modified dynamically
+        TAX
+        LDA     mult250_table, X
+        ADC     carry             ; C=1 from this add will be handled next time around
 .opsta
-        STA     &AA00, Y
+        STA     &AA00, Y          ; operand is modified dynamically
+        LDA     mult250_table+&100, X
+        STA     carry
         INY
         BNE     compare
         INC     oplda+2
         INC     opsta+2
 .compare
-        CPY     np_end
+        TYA
+        EOR     np_end            ; need to preserve carry, so can't use CPY
         BNE     loop
         LDA     oplda+2
-        CMP     np_end+1
+        EOR     np_end+1
         BNE     loop
-        LDA     #0
-        TAY
-        STA     (np_end),Y
         RTS
 }
 
