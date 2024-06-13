@@ -325,7 +325,10 @@ MACRO _DIVINIT
 .work_to_do
         _ADD16  sp, sump, msb_index
 IF OPTIMIZE_SHIFT
+        LDA     offset
+        BNE     skip_adjust
         _ADD16C sp, sp, &FFFF
+.skip_adjust
 ENDIF
         LDY     #0
         RTS
@@ -365,11 +368,6 @@ FOR i,0,bytes-1
 NEXT
 NEXT
 
-IF OPTIMIZE_SHIFT
-        LDA     offset
-        STA     modify_offset+1
-ENDIF
-
 .byte_loop
 
 ;       T%=T%*256+NumeratorP?I%
@@ -377,9 +375,6 @@ FOR i,bytes-1,1,-1
         LDA     temp+i-1
         STA     temp+i
 NEXT
-IF OPTIMIZE_SHIFT
-        LDY     #0
-ENDIF
         LDA     (np),Y
         STA     temp+0
 
@@ -421,10 +416,6 @@ NEXT
 
 ;     IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
 
-IF OPTIMIZE_SHIFT
-.modify_offset
-        LDY     #&00         ; operand is modified dynamically
-ENDIF
 IF (op)
         ; Add byte
         CLC
@@ -452,9 +443,7 @@ ELSE
         STA     (sp),Y
         BCC     cloop
 ENDIF
-IF NOT(OPTIMIZE_SHIFT)
         LDY     #0
-ENDIF
 ;       NEXT
 
 .byte_loop_next
