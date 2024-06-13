@@ -862,20 +862,28 @@ IF BELLARD
         BCC     ok
         RTS
 .ok
-        LDY     #1
-        LDX     #0
-.loop
-        LDA     (np), Y
-        STA     (np, X)
-        _INC16  np
-        LDA     np
-        CMP     np_end
-        BNE     loop
+        LDY     np
         LDA     np+1
+        STA     oplda+2
+        STA     opsta+2
+.loop
+.oplda
+        LDA     &AA01, Y
+.opsta
+        STA     &AA00, Y
+        INY
+        BNE     compare
+        INC     oplda+2
+        INC     opsta+2
+.compare
+        CPY     np_end
+        BNE     loop
+        LDA     oplda+2
         CMP     np_end+1
         BNE     loop
         LDA     #0
-        STA     (np, X)
+        TAY
+        STA     (np_end),Y
         RTS
 }
 
