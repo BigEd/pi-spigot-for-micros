@@ -344,7 +344,7 @@ NEXT
 FOR i,bytes-1,0,-1
         ; Modify the LDX #
         LDA     divisor+i
-        STA     modify + j*(bytes*14+6)+(bytes-1-i)*8+2
+        STA     modify + j*(bytes*14+5)+(bytes-1-i)*8+1
 NEXT
         ; Cunning optimization:
         ;   SBC # literal is divisor-1 which allows an SEC to be
@@ -354,7 +354,7 @@ FOR i,0,bytes-1
         ; Modify the SBC #
         LDA     divisor+i
         SBC     #0
-        STA     modify + j*(bytes*14+6)+i*6+bytes*8+6
+        STA     modify + j*(bytes*14+5)+i*6+bytes*8+5
 NEXT
 NEXT
 
@@ -376,14 +376,14 @@ ENDIF
         LDA     (np),Y
         STA     temp+0
 
+;       A will be used to accumulate the 8 result bits
+        LDA     #0
+
 .modify
 
 ;       Unroll the bit loop
 ;       FOR J%=0 TO 7
 FOR j,0,7
-
-;       B%=B%*2
-        ASL     A            ; A is used to accumulate the byte of data
 
 ;       IF T%>=D%
 FOR i,bytes-1,0,-1
@@ -402,7 +402,7 @@ FOR i,0,bytes-1
         STA     temp+i
 NEXT
         TXA                  ; restore A
-        ORA     #1
+        ORA     #(&80 >> j)
 
 ;       NEXT J%
 .bit_loop_next
