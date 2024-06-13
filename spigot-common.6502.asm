@@ -365,6 +365,11 @@ FOR i,0,bytes-1
 NEXT
 NEXT
 
+IF OPTIMIZE_SHIFT
+        LDA     offset
+        STA     modify_offset+1
+ENDIF
+
 .byte_loop
 
 ;       T%=T%*256+NumeratorP?I%
@@ -417,7 +422,8 @@ NEXT
 ;     IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
 
 IF OPTIMIZE_SHIFT
-        LDY     offset
+.modify_offset
+        LDY     #&00         ; operand is modified dynamically
 ENDIF
 IF (op)
         ; Add byte
