@@ -809,7 +809,42 @@ IF BELLARD
 }
 
 .mult4
-        _MULTIPLY mult4_table, 1
+        _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
+        _ADD16C np_end, np_end, 1 ; one extra bytes beyond the MSB
+        _ADD16  np, np, lsb_index ; np is the first element of work
+        _CMP16  np, np_end        ; range check up front to be safe
+        BCC     ok
+        RTS
+.ok
+        LDY     np      ; use Y as the LSB of the loop
+        LDA     #0
+        STA     carry   ; force carry byte to zero on first iteration
+        LDA     np+1
+        STA     oplda+2
+        STA     opsta+2
+        CLC
+.loop
+.oplda
+        LDA     &AA00, Y   ; operand is modified dynamically
+        TAX
+        ASL     A
+        ASL     A
+        ORA     carry
+.opsta
+        STA     &AA00, Y   ; operand is modified dynamically
+        LDA     div64_table, X
+        STA     carry
+        INY
+        BNE     compare
+        INC     oplda+2
+        INC     opsta+2
+.compare
+        CPY     np_end
+        BNE     loop
+        LDA     oplda+2
+        CMP     np_end+1
+        BNE     loop
+        RTS
 
 .mult250
         _MULTIPLY mult250_table,1
@@ -846,12 +881,9 @@ IF BELLARD
 
 ALIGN &100
 
-.mult4_table
+.div64_table
 FOR I,0,255
-EQUB (I*4) MOD &100
-NEXT
-FOR I,0,255
-EQUB (I*4) DIV &100
+EQUB I DIV &40
 NEXT
 
 .mult250_table
