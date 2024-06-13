@@ -263,25 +263,30 @@ ENDIF
         LDY     np      ; use Y as the LSB of the loop
         LDA     #0
         STA     carry   ; force carry byte to zero on first iteration
-        STA     np
+        LDA     np+1
+        STA     oplda+2
+        STA     opsta+2
         CLC
 .loop
-        LDA     (np), Y ; bitnum byte
+.oplda
+        LDA     &AA00, Y ; operand is modified dynamically
         TAX
         LDA     table, X
         ADC     carry   ; C=1 from this add will be handled next time around
-        STA     (np), Y
+.opsta
+        STA     &AA00, Y ; operand is modified dynamically
         LDA     table+&100, X
         STA     carry
         INY
         BNE     compare
-        INC     np+1
+        INC     oplda+2
+        INC     opsta+2
 .compare
         ; An equailty comparison is cheaper, but needs a range check up front
         TYA
         EOR     np_end  ; need to preserve carry, so can't use CPY
         BNE     loop
-        LDA     np+1
+        LDA     oplda+2
         EOR     np_end+1
         BNE     loop
         RTS
