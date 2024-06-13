@@ -316,6 +316,13 @@ MACRO _DIVINIT
 
         _ADD16  np, numeratorp, msb_index
         _ADD16  np_end, numeratorp, lsb_index
+
+        _CMP16  np, np_end  ; C=1 if arg1 >= arg2
+        BCS     work_to_do
+        PLA
+        PLA
+        RTS
+.work_to_do
         _ADD16  sp, sump, msb_index
 IF OPTIMIZE_SHIFT
         _ADD16C sp, sp, &FFFF
@@ -359,11 +366,6 @@ NEXT
 NEXT
 
 .byte_loop
-        _CMP16  np, np_end  ; C=1 if arg1 >= arg2
-        BCS     byte_loop_more
-; ENDPROC
-        RTS
-.byte_loop_more
 
 ;       T%=T%*256+NumeratorP?I%
 FOR i,bytes-1,1,-1
@@ -450,10 +452,22 @@ ENDIF
 ;       NEXT
 
 .byte_loop_next
+        ; Check the LSB first, optimize for branch not taken
+        LDA     np
+        CMP     np_end
+        BEQ     byte_loop_done
+
+.byte_loop_more
         _DEC16  np
         _DEC16  sp
-
         JMP     byte_loop
+
+.byte_loop_done
+        ; Check the MSB
+        LDA     np+1
+        CMP     np_end+1
+        BNE     byte_loop_more
+        RTS
 
 ENDMACRO
 
