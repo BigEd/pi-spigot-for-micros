@@ -82,7 +82,7 @@ DEF PROCset(BignumP, C)
   FOR I%=L% TO big-1
     BignumP?I%=0
   NEXT
-  BignumP?(big-1)=C
+  BignumP!(big-1)=C
 ENDPROC
 :
 REM --------------------------------------------------
