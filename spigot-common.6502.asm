@@ -591,9 +591,7 @@ IF BELLARD
 .p2
 
         _MOV16  np, sump
-        JSR     mult4 ; uses np as the argument pointer
-        _MOV16  np, sump
-        JSR     mult250 ; uses np as the argument pointer
+        JSR     mult1000 ; uses np as the argument pointer
 
 ;   PROCrescale(NumeratorP)
         _MOV16  np, numeratorp
@@ -806,7 +804,10 @@ IF BELLARD
         EQUB    100
 }
 
-.mult4
+carry2 = temp + 2
+
+.mult1000
+{
         _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
         _ADD16C np_end, np_end, 1 ; one extra bytes beyond the MSB
         _ADD16  np, np, lsb_index ; np is the first element of work
@@ -817,37 +818,39 @@ IF BELLARD
         LDY     np      ; use Y as the LSB of the loop
         LDA     #0
         STA     carry   ; force carry byte to zero on first iteration
+        STA     carry2
         LDA     np+1
         STA     oplda+2
         STA     opsta+2
         CLC
 .loop
 .oplda
-        LDA     &AA00, Y   ; operand is modified dynamically
+        LDA     &AA00, Y ; operand is modified dynamically
         TAX
-        ASL     A
-        ASL     A
-        ORA     carry
+        LDA     mult1000_table, X
+        ADC     carry
 .opsta
-        STA     &AA00, Y   ; operand is modified dynamically
-        LDA     div64_table, X
+        STA     &AA00, Y ; operand is modified dynamically
+        LDA     mult1000_table+&100, X
+        ADC     carry2
         STA     carry
+        LDA     mult1000_table+&200, X
+        ADC     #0
+        STA     carry2
         INY
         BNE     compare
         INC     oplda+2
         INC     opsta+2
 .compare
-        CPY     np_end
+        ; An equailty comparison is cheaper, but needs a range check up front
+        TYA
+        EOR     np_end  ; need to preserve carry, so can't use CPY
         BNE     loop
         LDA     oplda+2
-        CMP     np_end+1
+        EOR     np_end+1
         BNE     loop
         RTS
-
-.mult250
-        _MULTIPLY mult250_table,1
-
-
+}
 
 .rescale250256
 {
@@ -892,17 +895,23 @@ IF BELLARD
 
 ALIGN &100
 
-.div64_table
-FOR I,0,255
-EQUB I DIV &40
-NEXT
-
 .mult250_table
 FOR I,0,255
 EQUB (I*250) MOD &100
 NEXT
 FOR I,0,255
 EQUB (I*250) DIV &100
+NEXT
+
+.mult1000_table
+FOR I,0,255
+EQUB (I*1000) MOD &100
+NEXT
+FOR I,0,255
+EQUB ((I*1000) DIV &100) MOD &100
+NEXT
+FOR I,0,255
+EQUB (I*1000) DIV &10000
 NEXT
 
 ELSE
