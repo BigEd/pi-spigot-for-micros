@@ -32,7 +32,7 @@ REM and K is the iteration variable
 K%=0
 F%=0:      REM increments by 4
 T%=0:      REM increments by 10
-OP%=FALSE: REM toggle +/- each iteration
+OP%=-1:    REM toggle +/- each iteration
 M%=big-1 : REM leading zeros index for fast forward division
 :
 REM start producing digits!
@@ -42,7 +42,7 @@ REPEAT
   REM compute N/K and add/sub the quotient into S
   REM we adjust the denominator as needed
   D%=T%+1
-  IF K% PROCdivaddsub(NOT(OP%))
+  IF K% PROCdivaddsub(-OP%)
   D%=(T%+3)*4
   PROCdivaddsub(OP%)
   D%=(T%+5)*64
@@ -50,7 +50,7 @@ REPEAT
   D%=(T%+7)*64
   PROCdivaddsub(OP%)
   D%=(T%+9)*256
-  PROCdivaddsub(NOT(OP%))
+  PROCdivaddsub(-OP%)
   D%=(F%+1)*8
   PROCdivaddsub(OP%)
   D%=(F%+3)*256
@@ -63,7 +63,7 @@ REPEAT
   :
   REM now re-scale the numerator
   PROCrescale(NumeratorP)
-  OP%=NOT(OP%)
+  OP%=-OP%
   IF NumeratorP?M%=0 M%=M%-1
   base=base+3*106/256:L%=base
   F%=F%+4
@@ -113,12 +113,11 @@ DEF PROCdivaddsub(C%)
     FOR J%=0 TO 7
       B%=B%*2
       D%=D% DIV 2
-      IF T%>=D% T%=T%-D%:B%=B%+1
+      IF T%>=D% T%=T%-D%:B%=B%+C%
     NEXT
-    IF B%=0 NEXT:ENDPROC
     S%=SumP!I%
-    IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
-    IF SGNS%<>SGN(SumP!I%) STOP
+    SumP!I%=S%+B%
+    IF (SGNS%-SGN(SumP!I%))*C%<0:S%=SumP!(I%+4):SumP!(I%+4)=S%+C%:IF (SGNS%-SGN(SumP!(I%+4)))*C%<0:STOP
   NEXT
 ENDPROC
 :
