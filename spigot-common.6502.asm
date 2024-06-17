@@ -466,6 +466,17 @@ ENDIF
 
 ENDMACRO
 
+MACRO ALTERNATE_JSR fn1,fn2,c
+        LDA     c
+        AND     #&04
+        BNE     l1
+        JSR     fn1
+        JMP     l2
+.l1
+        JSR     fn2
+.l2
+ENDMACRO
+
 ; =============================================================
 ; MAIN PROGRAM
 ; =============================================================
@@ -537,26 +548,26 @@ IF BELLARD
         BEQ     skipfirst
         _ADD32C divisor, t, 1
         _SHL32  divisor, 0
-        JSR     divadd
+        ALTERNATE_JSR divadd, divsub, f
 .skipfirst
         _ADD32C divisor, t, 3
         _SHL32  divisor, 2
-        JSR     divsub
+        ALTERNATE_JSR divsub, divadd, f
         _ADD32C divisor, t, 5
         _SHL32  divisor, 6
-        JSR     divsub
+        ALTERNATE_JSR divsub, divadd, f
         _ADD32C divisor, t, 7
         _SHL32  divisor, 6
-        JSR     divsub
+        ALTERNATE_JSR divsub, divadd, f
         _ADD32C divisor, t, 9
         _SHL32  divisor, 8
-        JSR     divadd
+        ALTERNATE_JSR divadd, divsub, f
         _ADD32C divisor, f, 1
         _SHL32  divisor, 3
-        JSR     divsub
+        ALTERNATE_JSR divsub, divadd, f
         _ADD32C divisor, f, 3
         _SHL32  divisor, 8
-        JSR     divsub
+        ALTERNATE_JSR divsub, divadd, f
 
 ;  REM S is updated, now take three digits
 ;  IF K% PRINT;RIGHT$("000"+STR$(SumP!(big-1)),3);:ELSEPRINT;SumP!(big-1);
@@ -688,13 +699,6 @@ ENDIF
        _DIVINIT
 
 .divadd
-IF BELLARD
-        LDA     f
-        AND     #&04
-        BEQ     divadd1
-        JMP     divsub1
-.divadd1
-ENDIF
 
 IF OPTIMIZE_DIV24
         LDA     divisor+2
@@ -706,6 +710,7 @@ IF OPTIMIZE_DIV16
         LDA     divisor+1
         BEQ     divadd16
         JMP     divadd24
+
 .divadd16
         _DIVADDSUB 2, TRUE
 ENDIF
@@ -723,13 +728,6 @@ ENDIF
 ; ==================================================================================
 
 .divsub
-IF BELLARD
-        LDA     f
-        AND     #&04
-        BEQ     divsub1
-        JMP     divadd1
-.divsub1
-ENDIF
 
 IF OPTIMIZE_DIV24
         LDA     divisor+2
