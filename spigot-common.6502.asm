@@ -346,16 +346,7 @@ MACRO _DIVADDSUB bytes,op
         JSR     divinit
 
 ;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
-FOR i,bytes-1,1,-1
-        LDA     divisor+i-1
-        STA     divisor+i
-NEXT
-        STY     divisor+0    ; Y is a constant 0
-FOR j,0,7
-        LSR     divisor+bytes-1
-FOR i,bytes-2,0,-1
-        ROR     divisor+i
-NEXT
+FOR j,7,0,-1
 FOR i,bytes-1,0,-1
         ; Modify the LDX #
         LDA     divisor+i
@@ -370,6 +361,10 @@ FOR i,0,bytes-1
         LDA     divisor+i
         SBC     #0
         STA     modify + j*(bytes*14+5)+i*6+bytes*8+5
+NEXT
+        ASL     divisor+0
+FOR i,1,bytes-1
+        ROL     divisor+i
 NEXT
 NEXT
 
