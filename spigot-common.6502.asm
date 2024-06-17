@@ -488,10 +488,12 @@ RTS
 ; Embed a title into the machine code
 IF BELLARD
 EQUS "Bellard Pi Spigot"
+EQUB 13
 ELSE
 EQUS "BBP Pi Spigot"
-ENDIF
 EQUB 13
+EQUB 0,0,0,0 ; Padding so division code starts in same place
+ENDIF
 
 ; ==================================================================================
 ; Note: Division code comes next, so page alignment doesn't randomly change
