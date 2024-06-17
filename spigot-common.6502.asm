@@ -493,6 +493,98 @@ EQUS "BBP Pi Spigot"
 ENDIF
 EQUB 13
 
+; ==================================================================================
+; Note: Division code comes next, so page alignment doesn't randomly change
+; ==================================================================================
+
+
+.divadd32
+        _DIVADDSUB 4, TRUE
+
+.divsub32
+        _DIVADDSUB 4, FALSE
+
+IF OPTIMIZE_DIV24
+
+.divadd24
+        _DIVADDSUB 3, TRUE
+
+.divsub24
+        _DIVADDSUB 3, FALSE
+
+IF OPTIMIZE_DIV16
+
+.divadd16
+        _DIVADDSUB 2, TRUE
+
+.divsub16
+        _DIVADDSUB 2, FALSE
+
+ENDIF
+
+ENDIF
+
+; ==================================================================================
+; divadd subroutine
+; ==================================================================================
+
+.divadd
+{
+IF OPTIMIZE_DIV24
+        LDA     divisor+2
+        BNE     do32
+
+IF OPTIMIZE_DIV16
+        LDA     divisor+1
+        BNE     do24
+        JSR     divadd16   ; JSR rather than JMP to aid profiling
+        RTS
+.do24
+ENDIF
+        JSR     divadd24   ; JSR rather than JMP to aid profiling
+        RTS
+.do32
+ENDIF
+        JSR     divadd32   ; JSR rather than JMP to aid profiling
+        RTS
+}
+
+; ==================================================================================
+; divsub subroutine
+; ==================================================================================
+
+.divsub
+{
+IF OPTIMIZE_DIV24
+        LDA     divisor+2
+        BNE     do32
+
+IF OPTIMIZE_DIV16
+        LDA     divisor+1
+        BNE     do24
+        JSR     divsub16   ; JSR rather than JMP to aid profiling
+        RTS
+.do24
+ENDIF
+        JSR     divsub24   ; JSR rather than JMP to aid profiling
+        RTS
+.do32
+ENDIF
+        JSR     divsub32   ; JSR rather than JMP to aid profiling
+        RTS
+}
+
+; ==================================================================================
+; Shared DIVINIT routine
+; ==================================================================================
+
+.divinit
+       _DIVINIT
+
+; ==================================================================================
+; Main Program
+; ==================================================================================
+
 .spigot
         TSX
         STX     saved_sp
@@ -690,66 +782,6 @@ ENDIF
 ; UNTIL FALSE
 ; exit now happens in print_digit
         JMP     spigot_loop
-
-; ==================================================================================
-; DIVADD routines
-; ==================================================================================
-
-.divinit
-       _DIVINIT
-
-.divadd
-
-IF OPTIMIZE_DIV24
-        LDA     divisor+2
-        BEQ     divadd2
-        JMP     divadd32
-.divadd2
-
-IF OPTIMIZE_DIV16
-        LDA     divisor+1
-        BEQ     divadd16
-        JMP     divadd24
-
-.divadd16
-        _DIVADDSUB 2, TRUE
-ENDIF
-
-.divadd24
-        _DIVADDSUB 3, TRUE
-
-ENDIF
-
-.divadd32
-        _DIVADDSUB 4, TRUE
-
-; ==================================================================================
-; DIVSUB routines
-; ==================================================================================
-
-.divsub
-
-IF OPTIMIZE_DIV24
-        LDA     divisor+2
-        BEQ     divsub2
-        JMP     divsub32
-.divsub2
-
-IF OPTIMIZE_DIV16
-        LDA     divisor+1
-        BEQ     divsub16
-        JMP     divsub24
-
-.divsub16
-        _DIVADDSUB 2, FALSE
-ENDIF
-
-.divsub24
-        _DIVADDSUB 3, FALSE
-ENDIF
-
-.divsub32
-        _DIVADDSUB 4, FALSE
 
 .print_digit
 {
