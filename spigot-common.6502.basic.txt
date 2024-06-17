@@ -15,7 +15,7 @@ READ d
 PROCtest(d)
 UNTIL d=0
 :
-PRINT '"Summary for ";$(code+3)
+PRINT '"Summary for ";$(code+4)
 FOR test%=0 TO num_tests%-1
 @%=&90A
 PRINT digits(test%);
@@ -34,7 +34,7 @@ IF digits=0 ENDPROC
 :
 big=((digits*5) DIV 12)+2 : REM can add 1 or 2 for guard digits
 @%=&90A
-PRINT $(code+3)
+PRINT $(code+4)
 PRINT "Digits = ";digits
 PRINT "   Big = ";big;" bytes"
 :

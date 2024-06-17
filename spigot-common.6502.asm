@@ -475,8 +475,9 @@ ENDMACRO
 ; MAIN PROGRAM
 ; =============================================================
 
-; Start with a jump block to aid testing
-JMP spigot ; +0000
+; Start with a JSR/RTS to give consistent address to end profiling
+JSR spigot ; +0000
+RTS
 
 ; Embed a title into the machine code
 IF BELLARD
