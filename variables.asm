@@ -54,6 +54,7 @@ DEBUG          = FALSE
    resultp = &8F ; 1 bytes
 
    results = &600
+    buffer = &700
 
 ; ==================================================================================
 ; Parameters for the spigot digit subroutine

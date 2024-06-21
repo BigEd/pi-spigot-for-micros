@@ -19,34 +19,49 @@ include "spigot-common.6502.asm"
 
         JSR     print_spigot_name
 
+; Get a pointer to the *RUN parameters
+; Note, this will always be in I/O memory
+        LDA     #&01
+        LDX     #params
+        LDY     #&00
+        STY     resultp
+        JSR     OSARGS
+
 ; Are we running on the HOST?
         LDA     #&EA
         LDX     #&00
         LDY     #&FF
         JSR     OSBYTE
         TXA
-        BNE     skip_relocate
+        BNE     running_over_tube
+
+; HOST specific actions
 
 ; Perform *TAPE
 ;        LDA     #&8C
 ;        JSR     OSBYTE
 
-
 ; TODO: Relocate
 
-.skip_relocate
+; Read the current value of HIMEM into memtop
         LDA     #&84
         JSR     OSBYTE
         STX     memtop
         STY     memtop+1
 
+        JMP     param_loop
 
-; Get a pointer to the *RUN parameters
-        LDA     #&01
-        LDX     #params
-        LDY     #&00
-        STY     resultp
-        JSR     OSARGS
+.running_over_tube
+
+; Fetch the parameter string from IO Memory usimg OSWORD
+        JSR     fetch_params_over_tube
+
+; TODO - fix this
+
+        LDA    #&00
+        STA    memtop
+        LDA    #&F8
+        STA    memtop+1
 
 ; Process the next parameter (as a number of digits)
 
@@ -240,6 +255,11 @@ NEXT
         JMP     param_loop
 
 .done
+        LDY     resultp
+        BNE     summary
+        RTS
+
+.summary
         JSR     print_string
         EQUS    13, "Summary for "
         NOP
@@ -293,6 +313,51 @@ ENDIF
         NOP
         RTS
 }
+
+; ==================================================================================
+; Fetch the *RUN params over the tube usimg OSWORD A=&05
+; ==================================================================================
+
+.fetch_params_over_tube
+{
+        LDA    params
+        STA    osword_05_block
+        LDA    params+1
+        STA    osword_05_block+1
+        LDA    #&FF
+        STA    osword_05_block+2
+        STA    osword_05_block+3
+
+        LDA    #<buffer
+        STA    params
+        LDA    #>buffer
+        STA    params+1
+
+        LDA    #0
+        STA    tmp
+.loop
+        LDA    #&05
+        LDX    #<osword_05_block
+        LDY    #>osword_05_block
+        JSR    OSWORD
+        LDA    osword_05_block+4
+        LDY    tmp
+        STA    (params), Y
+        INC    tmp
+
+        INC    osword_05_block
+        BNE    skip
+        INC    osword_05_block+1
+.skip
+        CMP    #&0D
+        BNE    loop
+        RTS
+
+.osword_05_block
+        SKIP    5
+
+}
+
 ; ==================================================================================
 ; Set Initial value to all zero, except for a 4 in element big-1
 ; ==================================================================================
