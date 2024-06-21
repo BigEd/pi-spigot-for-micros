@@ -618,6 +618,11 @@ NEXT
         STA     num+3
         TXA
         BNE     digit    ; Not zero, print it
+        LDX     tmp
+        BEQ     padit
+        CPY     #8       ; test if fixed point, and digit is 100s
+        BEQ     digit    ; yes, force a 0 top be printed
+.padit
         LDA     pad
         BNE     print
         BEQ     next     ; pad<>0, use it
@@ -630,9 +635,9 @@ NEXT
 .next
         LDA     tmp
         BEQ     normal
-        CPY     #8
+        CPY     #8       ; test if fixed point, and digit is 100s
         BNE     normal
-        LDA     #'.'
+        LDA     #'.'     ; yes force a . to be printed
         JSR     OSWRCH
 .normal
         DEY
