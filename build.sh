@@ -8,7 +8,7 @@ rm -f ${BUILD}/*
 # Prepare a !BOOT file
 cat > ${BUILD}/boot <<EOF
 *FX11
-*RUN PIBEL19 80,200,400,800,100,1000,3000
+*RUN BEL19 80,200,400,800,100,1000,3000
 EOF
 
 # SSD File name
@@ -24,11 +24,11 @@ do
 
     if [ "${BELLARD}" = "1" ]
     then
-        STEM=PIBEL
-        echo "PUTBASIC \"../spigot-bellard.basic.txt\", \"${STEM}BA\"" >> ${BUILD}/${MKSSD}
+        STEM=BEL
+        echo "PUTBASIC \"../spigot-bellard.basic.txt\", \"${STEM}BAS\"" >> ${BUILD}/${MKSSD}
     else
-        STEM=PIBBP
-        echo "PUTBASIC \"../spigot-bbp.basic.txt\", \"${STEM}BA\"" >> ${BUILD}/${MKSSD}
+        STEM=BBP
+        echo "PUTBASIC \"../spigot-bbp.basic.txt\", \"${STEM}BAS\"" >> ${BUILD}/${MKSSD}
     fi
 
     for BASE in 08 0E 19
