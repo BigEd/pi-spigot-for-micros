@@ -2,7 +2,7 @@ include "variables.asm"
 
 include "macros.asm"
 
-        ORG    &1900
+        ORG    BASE
 
 .code_start
 
@@ -25,6 +25,7 @@ include "spigot-common.6502.asm"
         LDX     #params
         LDY     #&00
         STY     resultp
+        STY     lastpage
         JSR     OSARGS
 
 ; Are we running on the HOST?
@@ -56,7 +57,7 @@ include "spigot-common.6502.asm"
 ; Fetch the parameter string from IO Memory usimg OSWORD
         JSR     fetch_params_over_tube
 
-; TODO - fix this
+; Allow use of memory upto &F800
 
         LDA    #&00
         STA    memtop
@@ -201,6 +202,13 @@ include "spigot-common.6502.asm"
         SBC     memtop+1
         BCS     overflow
 
+; record the highest page we have used
+        LDA     tmp+1
+        CMP     lastpage
+        BCC     smaller
+        STA     lastpage
+.smaller
+
 ; Initialize bignums
 
         LDX     #sump
@@ -283,7 +291,20 @@ NEXT
         JSR     print_secs
         CPY     resultp
         BCC     result_loop
+
+; Have we possibly clobbered the current language?
+        LDA     lastpage
+        BMI     exit_by_running_basic
         RTS
+
+; If so, exit with *BASIC
+.exit_by_running_basic
+        LDX     #<basic
+        LDY     #>basic
+        JMP     OSCLI
+
+.basic
+        EQUS    "BASIC",13
 
 .time1
         SKIP    5
@@ -661,6 +682,4 @@ NEXT
 
 .code_end
 
-SAVE "SPIG", code_start, code_end
-
-PUTTEXT "rboot", "!BOOT", 0000
+SAVE code_start, code_end

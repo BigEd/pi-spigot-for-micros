@@ -1,6 +1,4 @@
 *~
 #*
-not_in_get/
-*.log
-*.labels
-*.ssd
+not_in_git/
+build/

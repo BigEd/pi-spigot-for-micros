@@ -51,9 +51,10 @@ DEBUG          = FALSE
       arg2 = &8A ; 2 bytes
        tmp = &8C ; 2 bytes
        pad = &8E ; 1 bytes
-   resultp = &8F ; 1 bytes
+  lastpage = &8F ; 1 bytes
 
    results = &600
+   resultp = &6FF
     buffer = &700
 
 ; ==================================================================================
