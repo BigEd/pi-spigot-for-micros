@@ -281,6 +281,9 @@ MACRO _DIVADDSUB bytes,op
 ; This calls the _DIVINIT code as a subroutine
         JSR     divinit
 
+; self-modify the comparison at the end of the loop
+        LDA     np_end
+        STA     byte_loop_next+3
 ;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
 FOR j,7,0,-1
 FOR i,bytes-1,0,-1
@@ -385,7 +388,7 @@ ENDIF
 .byte_loop_next
         ; Check the LSB first, optimize for branch not taken
         LDA     np
-        CMP     np_end
+        CMP     #np_end
         BEQ     byte_loop_done
 
 .byte_loop_more
