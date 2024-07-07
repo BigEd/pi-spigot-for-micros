@@ -1,0 +1,58 @@
+This is to tabulate the performance of the various versions, all on BBC Micro 2MHz
+
+Starting point benchmark to beat (Vol/litwr's Rabinowitz/Wagon implementation)
+          100    1000     3000
+         1.64  157.85  1409.76
+
+Our efforts, initially using BBP formula:
+
+	  100    1000     3000
+970385b  4.02  305.06  2642.57   2024-05-31  Working machine code version
+16021e5  4.01  305.43  2642.40   2024-06-02  Add divisor width to macro DIVADDSUB
+edef31c  3.71  279.91  2430.91   2024-06-02  Save ~8% by unrolling bit loop + other small optimizations
+714b0ea  3.64  274.79  2377.03   2024-06-02  Save ~1% by implementing mult10 with a lookup table
+514801f  3.60  271.72  2356.12   2024-06-02  Save <<1%  by implementing div16 with a lookup table
+6e4d6f9  3.43  269.98  2351.37   2024-06-05  Save about 1% by dropping IF L%>24
+fed677f  2.68  206.62  1805.41   2024-06-05  Use 24 bit then 32 bot divadd/sub as required
+273bdea  2.58  207.75  1800.50   2024-06-05  Update DIVADDSUB macro to use a while loop
+313eccd  2.56  206.23  1784.76   2024-06-05  Optimise loop variable in multi10
+9bca781  2.55  204.74  1777.82   2024-06-05  Optimise loop variable in div16
+618acf6  2.55  205.62  1775.85   2024-06-05  Optimise carry handling in multi10
+b61d72c  1.95  147.78  1252.22   2024-06-07  divadd/divsub now self modifying
+56f3d49  1.79  144.78  1251.48   2024-06-11  Bellard now implemented
+
+switch to Bellard formula
+56f3d49  1.18  102.38   914.78   2024-06-11  Bellard now implemented
+56561e1  1.18  102.39   914.78   2024-06-12  Add some build options for DIV24, DIV16 and SHIFT optimizations
+69b99b1  1.09   99.74   895.84   2024-06-12  Set build options to fastest values
+6ba78da  1.08   98.87   887.88	 2024-06-12  Comment out short-cut that wasn't helping
+a89d6a0  1.07   96.90   869.31	 2024-06-12  Eliminate an SEC from the inner loop (2% speedup)
+cf88c79  1.06   96.64   866.87   2024-06-12  Another couple of cycles saved in DIVADDSUB
+1e7a686  1.03   93.15   835.96   2024-06-13  Eliminate ASL A from inner loop (3.6% speedup)
+3fb81f2  1.00   91.23   818.89   2024-06-13  Optimize byte loop control (2.1% speedup)
+384ca94  1.00   90.89   815.83   2024-06-13  Save one more cycle using self modifying code (0.4% speedup)
+6fa35a7  1.00   90.20   809.76   2024-06-13  Reimplement OPTIMIZE_SHIFT more efficiently (0.7% speedup)
+9f98510  0.99   89.98   807.81   2024-06-13  Optimize multiply macro using self-modifying code
+3c68985  0.99   89.91   807.15   2024-06-13  Minor improvement to mult4
+3927409  0.99   89.62   804.52   2024-06-13  Optimize div256 using self-modifying code
+ff104c9  0.97   88.78   797.13   2024-06-13  Eliminate seperate div256 (0.9% speedup)
+51c5fbf  0.97   87.99   790.21   2024-06-14  Replace mult4/mult250 by mult1000 (0.9% speedup)
+71a3a9c  0.97   87.99   790.21	 2024-06-15  Fix overflow bug in Bellard
+fff9ddb  0.96   87.99   790.36	 2024-06-17  start with JSR/RTS to aid profiling
+fffe899  0.96   87.89   789.34	 2024-06-17  Save code space
+d3649a2  0.96   87.92   789.63	 2024-06-17  push bellard op toggling up a level
+3350035  0.96   87.84   789.25   2024-06-17  division code placed carefully (Bellard)
+9d284ce  0.96   87.84   789.25   2024-06-17  division code placed carefully (BBP)
+79d3237  0.96   87.44   782.99   2024-06-21  Initial pure machine code version (&1900 only build)
+
+
+Final result (so far!):
+
+Initial Rabinowitz/Wagon spigot by Vol/litwr:
+         1.64  157.85  1409.76
+
+Final BBP:
+79d3237  1.51  129.71  1120.09   2024-06-21
+
+Final Bellard:
+79d3237  0.96   87.44   782.99   2024-06-21
