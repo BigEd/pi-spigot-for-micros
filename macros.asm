@@ -287,6 +287,7 @@ MACRO _DIVADDSUB bytes,op
 ;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
 
 ; Bit number threshold for applying the compare BEQ shortcut optimization
+IF BELLARD
 IF bytes=2
     COMP_OPT_THRESHOLD=7 ; 16-bit division: optimize slice 7
 ELIF bytes=3
@@ -295,6 +296,17 @@ ELIF bytes=4
     COMP_OPT_THRESHOLD=2 ; 32-bit division: optimize slices 2-7
 ELSE
     COMP_OPT_THRESHOLD=8 ; don't optimize
+ENDIF
+ELSE ; different settings for BBP
+IF bytes=2
+    COMP_OPT_THRESHOLD=7 ; 16-bit division: optimize slice 7
+ELIF bytes=3
+    COMP_OPT_THRESHOLD=6 ; 24-bit division: optimize slices 6-7
+ELIF bytes=4
+    COMP_OPT_THRESHOLD=8 ; 32-bit division: don't optimize
+ELSE
+    COMP_OPT_THRESHOLD=8 ; don't optimize
+ENDIF
 ENDIF
 
 FOR j,7,0,-1
