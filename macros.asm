@@ -286,10 +286,14 @@ MACRO _DIVADDSUB bytes,op
         STA     byte_loop_next+3
 ;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
 FOR j,7,0,-1
+; Code offset to the Jth division bit slice compare block
+COMPARE_J  = j*(bytes*14+5)
+; Code offset to the Jth division bit slice subtract block
+SUBTRACT_J = COMPARE_J + bytes*8
 FOR i,bytes-1,0,-1
         ; Modify the LDX #
         LDA     divisor+i
-        STA     modify + j*(bytes*14+5)+(bytes-1-i)*8+1
+        STA     modify + COMPARE_J + (bytes-1-i)*8 + 1
 NEXT
         ; Cunning optimization:
         ;   SBC # literal is divisor-1 which allows an SEC to be
@@ -299,7 +303,7 @@ FOR i,0,bytes-1
         ; Modify the SBC #
         LDA     divisor+i
         SBC     #0
-        STA     modify + j*(bytes*14+5)+i*6+bytes*8+5
+        STA     modify + SUBTRACT_J + i*6 + 5
 NEXT
         ASL     divisor+0
 FOR i,1,bytes-1
