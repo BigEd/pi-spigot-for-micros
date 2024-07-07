@@ -285,15 +285,19 @@ MACRO _DIVADDSUB bytes,op
         LDA     np_end
         STA     byte_loop_next+3
 ;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
+
+; Bit number threshold for applying the compare BEQ shortcut optimization
+COMP_OPT_THRESHOLD=5
+
 FOR j,7,0,-1
 ; Code offset to the Jth division bit slice compare block
-COMPARE_J  = j*(bytes*14+5)
+COMPARE_J  = j*(bytes*14+5) - (j>COMP_OPT_THRESHOLD)*(j-COMP_OPT_THRESHOLD)*2
 ; Code offset to the Jth division bit slice subtract block
-SUBTRACT_J = COMPARE_J + bytes*8
+SUBTRACT_J = COMPARE_J + bytes*8 - (j>=COMP_OPT_THRESHOLD)*2
 FOR i,bytes-1,0,-1
         ; Modify the LDX #
         LDA     divisor+i
-        STA     modify + COMPARE_J + (bytes-1-i)*8 + 1
+        STA     modify + COMPARE_J + (bytes-1-i)*8 + 1 - (j>=COMP_OPT_THRESHOLD AND i<bytes-1)*2
 NEXT
         ; Cunning optimization:
         ;   SBC # literal is divisor-1 which allows an SEC to be
@@ -334,8 +338,13 @@ FOR j,0,7
 FOR i,bytes-1,0,-1
         LDX     #&00         ; operand is modified dynamically
         CPX     temp+i       ; X is used so as not to corrupt A
+; Shortcut the first BCC/BNE (optimization suggested by profiling)
+IF i=bytes-1 AND j>=COMP_OPT_THRESHOLD
+        BEQ     skip_br
+ENDIF
         BCC     do_subtract
         BNE     bit_loop_next
+.skip_br
 NEXT
         CLC
 ;       T%=T%-D%:B%=B%+1
