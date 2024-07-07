@@ -44,7 +44,9 @@ d3649a2  0.96   87.92   789.63	 2024-06-17  push bellard op toggling up a level
 3350035  0.96   87.84   789.25   2024-06-17  division code placed carefully (Bellard)
 9d284ce  0.96   87.84   789.25   2024-06-17  division code placed carefully (BBP)
 79d3237  0.96   87.44   782.99   2024-06-21  Initial pure machine code version (&1900 only build)
-
+32358e9  0.96   87.18   780.67   2024-07-06  selfmodify check at end of byte loop - tiny speedup of 0.3%
+747c8c0  0.95   86.78   776.70   2024-07-07  Implement division compare BEQ shortcut with threshold of 5 (0.5% speedup)
+a591db8  0.95   86.51   774.41   2024-07-07  Seperate BEQ thresholds for 16/24/32 bit division (0.3% speedup)
 
 Final result (so far!):
 
@@ -52,7 +54,8 @@ Initial Rabinowitz/Wagon spigot by Vol/litwr:
          1.64  157.85  1409.76
 
 Final BBP:
-79d3237  1.51  129.71  1120.09   2024-06-21
+79d3237  1.51  129.71  1120.09   2024-06-21  previously a little faster for 100 and 1000 digits
+a591db8  1.64  130.00  1117.94   2024-07-07  faster for 3000
 
 Final Bellard:
-79d3237  0.96   87.44   782.99   2024-06-21
+a591db8  0.95   86.51   774.41   2024-07-07
