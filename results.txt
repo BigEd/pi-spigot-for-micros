@@ -54,8 +54,7 @@ Initial Rabinowitz/Wagon spigot by Vol/litwr:
          1.64  157.85  1409.76
 
 Final BBP:
-79d3237  1.51  129.71  1120.09   2024-06-21  previously a little faster for 100 and 1000 digits
-a591db8  1.64  130.00  1117.94   2024-07-07  faster for 3000
+3290d33  1.51  128.85  1114.40   2024-07-07
 
 Final Bellard:
 a591db8  0.95   86.51   774.41   2024-07-07
