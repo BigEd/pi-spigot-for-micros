@@ -273,7 +273,13 @@ IF OPTIMIZE_SHIFT
 ENDIF
         LDY     #0
         RTS
+ENDMACRO
 
+MACRO CHECK_FOR_PAGE_CROSSING target
+    target =? -1
+    IF ((target >= 0) AND (target AND &FF00)<>((P% + 2) AND &FF00))
+        PRINT "branch at ",~P%,"to target ",~target,"crosses page boundary"
+    ENDIF
 ENDMACRO
 
 MACRO _DIVADDSUB bytes,op
@@ -360,9 +366,12 @@ FOR i,bytes-1,0,-1
         CPX     temp+i       ; X is used so as not to corrupt A
 ; Shortcut the first BCC/BNE (optimization suggested by profiling)
 IF i=bytes-1 AND j>=COMP_OPT_THRESHOLD
+        CHECK_FOR_PAGE_CROSSING skip_br
         BEQ     skip_br
 ENDIF
+        CHECK_FOR_PAGE_CROSSING do_subtract
         BCC     do_subtract
+        CHECK_FOR_PAGE_CROSSING bit_loop_next
         BNE     bit_loop_next
 .skip_br
 NEXT
