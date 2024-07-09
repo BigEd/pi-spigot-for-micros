@@ -5,22 +5,22 @@
 ; Include versions of DIVADD/SUB with 24-bit maths for small divisors
 ; Bellard 1000 runs 17.9% faster
 ;     BBP 1000 runs 28.0% faster
-OPTIMIZE_DIV24 = TRUE
+OPTIMIZE_DIV24 =? TRUE
 
 ; Include versions of DIVADD/SUB with 16-bit maths for very small divisors
 ; Bellard 1000 runs 1.0% faster
 ;     BBP 1000 runs 1.0% faster
 ; (this depends on OPTIMIZE_DIV24 being TRUE and is ignored otherwise)
-OPTIMIZE_DIV16 = TRUE
+OPTIMIZE_DIV16 =? TRUE
 
 ; Optimize implemenation of shifts where the divisor LSB ends up as zero
 ; Bellard 1000 runs 1.7% faster
 ;     BBP 1000 runs 1.1% slower
 ; (this has most benefit when OPTIMIZE_DIV24 and OPTIMIZE_DIV16 are TRUE)
-OPTIMIZE_SHIFT = BELLARD
+OPTIMIZE_SHIFT =? BELLARD
 
 ; Include additiona debug support code
-DEBUG          = FALSE
+DEBUG          =? FALSE
 
 ; ==================================================================================
 ; Constants

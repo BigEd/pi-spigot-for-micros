@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Enable debug output
+DEBUG=0
+
 # Build everything in a subdirectory
 BUILD=build
 mkdir -p ${BUILD}
@@ -35,7 +38,7 @@ do
     do
         NAME=${STEM}${BASE}
 
-        beebasm -D BELLARD=${BELLARD} -D BASE=0x${BASE}00 -dd -labels ${BUILD}/${NAME}.labels -i spigot-runner.6502.asm -v -o ${BUILD}/${NAME}.bin 2>&1 | tee ${BUILD}/${NAME}.log
+        beebasm -D DEBUG=${DEBUG} -D BELLARD=${BELLARD} -D BASE=0x${BASE}00 -dd -labels ${BUILD}/${NAME}.labels -i spigot-runner.6502.asm -v -o ${BUILD}/${NAME}.bin 2>&1 | tee ${BUILD}/${NAME}.log
 
         echo "PUTFILE \"${BUILD}/${NAME}.bin\",\"${NAME}\",&${BASE}00,&${BASE}00" >> ${BUILD}/${MKSSD}
     done
