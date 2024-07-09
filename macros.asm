@@ -47,11 +47,29 @@ FOR I,0,1
 NEXT
 ENDMACRO
 
+MACRO _SUB16 result, arg1, arg2
+        SEC
+FOR I,0,1
+        LDA arg1+I
+        SBC arg2+I
+        STA result+I
+NEXT
+ENDMACRO
+
 MACRO _ADD16C result, arg1, arg2
         CLC
 FOR I,0,1
         LDA arg1+I
         ADC #((arg2 >> (I*8)) AND &FF)
+        STA result+I
+NEXT
+ENDMACRO
+
+MACRO _SUB16C result, arg1, arg2
+        SEC
+FOR I,0,1
+        LDA arg1+I
+        SBC #((arg2 >> (I*8)) AND &FF)
         STA result+I
 NEXT
 ENDMACRO
@@ -186,7 +204,7 @@ ENDIF
 
 carry = temp + 1
 
-MACRO _MULTIPLY table, extra
+MACRO _MULTIPLY_LITTLE_ENDIAN table, extra
         _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
 IF extra
         _ADD16C np_end, np_end, extra ; any extra bytes beyond the MSB?
@@ -228,6 +246,49 @@ ENDIF
         RTS
 ENDMACRO
 
+MACRO _MULTIPLY_BIG_ENDIAN table, extra
+        _SUB16  np_end, np, big   ; np_end is one beyond the last element of work
+IF extra
+        _SUB16C np_end, np_end, extra ; any extra bytes beyond the MSB?
+ENDIF
+        _SUB16  np, np, lsb_index ; np is the first element of work
+        _CMP16  np_end, np        ; range check up front to be safe
+        BCC     ok
+        RTS
+.ok
+        LDY     np      ; use Y as the LSB of the loop
+        LDA     #0
+        STA     carry   ; force carry byte to zero on first iteration
+        LDA     np+1
+        STA     oplda+2
+        STA     opsta+2
+        CLC
+.loop
+.oplda
+        LDA     &AA00, Y ; operand is modified dynamically
+        TAX
+        LDA     table, X
+        ADC     carry   ; C=1 from this add will be handled next time around
+.opsta
+        STA     &AA00, Y ; operand is modified dynamically
+        LDA     table+&100, X
+        STA     carry
+        TYA
+        BNE     compare
+        DEC     oplda+2
+        DEC     opsta+2
+.compare
+        DEY
+        ; An equailty comparison is cheaper, but needs a range check up front
+        TYA
+        EOR     np_end  ; need to preserve carry, so can't use CPY
+        BNE     loop
+        LDA     oplda+2
+        EOR     np_end+1
+        BNE     loop
+        RTS
+ENDMACRO
+
 ; ==================================================================================
 ; DIVADDSUB MACRO
 ; ==================================================================================
@@ -255,10 +316,10 @@ MACRO _DIVINIT
 
 ;   FOR I%=M% TO L% STEP -1
 
-        _ADD16  np, numeratorp, msb_index
-        _ADD16  np_end, numeratorp, lsb_index
+        _SUB16  np, numeratorp, msb_index
+        _SUB16  np_end, numeratorp, lsb_index
 
-        _CMP16  np, np_end  ; C=1 if arg1 >= arg2
+        _CMP16  np_end, np  ; C=1 if arg1 >= arg2
         BCS     work_to_do
         PLA
         PLA
@@ -425,7 +486,7 @@ ENDIF
         BEQ     byte_loop_done
 
 .byte_loop_more
-        _DEC16  np
+        _INC16  np
         _DEC16  sp
         JMP     byte_loop
 

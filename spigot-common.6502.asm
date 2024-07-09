@@ -194,11 +194,11 @@ IF BELLARD
 .p2
 
         _MOV16  np, sump
-        JSR     mult1000 ; uses np as the argument pointer
+        JSR     mult1000_little_endian ; uses np as the argument pointer
 
 ;   PROCrescale(NumeratorP)
         _MOV16  np, numeratorp
-        JSR     rescale250256 ; uses np as the argument pointer
+        JSR     rescale250256_big_endian ; uses np as the argument pointer
 
 ELSE
 
@@ -239,19 +239,19 @@ ELSE
 
 ;   PROCx10(SumP)
         _MOV16  np, sump
-        JSR     mult10 ; uses np as the argument pointer
+        JSR     mult10_little_endian ; uses np as the argument pointer
 
 ;   PROCrescale(NumeratorP)
         _MOV16  np, numeratorp
-        JSR     mult10 ; uses np as the argument pointer
+        JSR     mult10_big_endian ; uses np as the argument pointer
         _MOV16  np, numeratorp
-        JSR     div16  ; uses np as the argument pointer
+        JSR     div16_big_endian  ; uses np as the argument pointer
 
 ENDIF
 
 ;   IF NumeratorP?M%=0 M%=M%-1
         _MOV16  np, numeratorp
-        _ADD16  np, np, msb_index
+        _SUB16  np, np, msb_index
         LDY     #0
         LDA     (np),Y
         BNE     num_not_zero
@@ -336,7 +336,7 @@ IF BELLARD
 
 carry2 = temp + 2
 
-.mult1000
+.mult1000_little_endian
 {
         _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
         _ADD16C np_end, np_end, 1 ; one extra bytes beyond the MSB
@@ -382,11 +382,11 @@ carry2 = temp + 2
         RTS
 }
 
-.rescale250256
+.rescale250256_big_endian
 {
-        _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
-        _ADD16  np, np, lsb_index ; np is the first element of work
-        _CMP16  np, np_end        ; range check up front to be safe
+        _SUB16  np_end, np, big   ; np_end is one beyond the last element of work
+        _SUB16  np, np, lsb_index ; np is the first element of work
+        _CMP16  np_end, np        ; range check up front to be safe
         BCC     ok
         RTS
 .ok
@@ -399,21 +399,25 @@ carry2 = temp + 2
         LDA     mult250_table+&100, X
         STA     carry             ; fill the pipeline
         CLC
+        _DEC16  np_end
+        JMP     next
 .loop
 .oplda
-        LDA     &AA01, Y          ; operand is modified dynamically
+        LDA     &AA00, Y          ; operand is modified dynamically
         TAX
         LDA     mult250_table, X
         ADC     carry             ; C=1 from this add will be handled next time around
 .opsta
-        STA     &AA00, Y          ; operand is modified dynamically
+        STA     &AA01, Y          ; operand is modified dynamically
         LDA     mult250_table+&100, X
         STA     carry
-        INY
+.next
+        TYA
         BNE     compare
-        INC     oplda+2
-        INC     opsta+2
+        DEC     oplda+2
+        DEC     opsta+2
 .compare
+        DEY
         TYA
         EOR     np_end            ; need to preserve carry, so can't use CPY
         BNE     loop
@@ -446,8 +450,11 @@ NEXT
 
 ELSE
 
-.mult10
-        _MULTIPLY  mult10_table, 0
+.mult10_little_endian
+        _MULTIPLY_LITTLE_ENDIAN  mult10_table, 0
+
+.mult10_big_endian
+        _MULTIPLY_BIG_ENDIAN  mult10_table, 0
 
 ; DEF PROCdiv16(BignumP)
 ;   LOCAL carry, temp
@@ -459,13 +466,13 @@ ELSE
 ;   NEXT
 ; ENDPROC
 
-.div16
+.div16_big_endian
 {
-        _ADD16  np_end, np, lsb_index
-        _DEC16  np_end            ; np_end is one beyond the last element of work
-        _ADD16  np, np, big
-        _DEC16  np                ; np is thefirst element of work
-        _CMP16  np, np_end        ; range check up front to be safe
+        _SUB16  np_end, np, lsb_index
+        _INC16  np_end            ; np_end is one beyond the last element of work
+        _SUB16  np, np, big
+        _INC16  np                ; np is thefirst element of work
+        _CMP16  np_end, np        ; range check up front to be safe
         BCS     ok
         RTS
 .ok
@@ -481,11 +488,10 @@ ELSE
         STA     (np), Y
         LDA     div16_table_lsb,X
         STA     carry
-        CPY     #0
+        INY
         BNE     skip
-        DEC     np+1
+        INC     np+1
 .skip
-        DEY
         ; An equailty comparison is cheaper, but needs a range check up front
         CPY     np_end
         BNE     loop

@@ -251,24 +251,20 @@ ENDIF
 
 ; Calculate end of numeratorp
 
-        LDA     numeratorp
-        STA     tmp
-        LDA     numeratorp+1
-        STA     tmp+1
-        LDX     #tmp
+        LDX     #numeratorp
         JSR     add_pad
         BCS     overflow
         JSR     add_big
         BCS     overflow
 
-        LDA     tmp
+        LDA     numeratorp
         CMP     memtop
-        LDA     tmp+1
+        LDA     numeratorp+1
         SBC     memtop+1
         BCS     overflow
 
 ; record the highest page we have used
-        LDA     tmp+1
+        LDA     numeratorp+1
         CMP     lastpage
         BCC     smaller
         STA     lastpage
@@ -279,7 +275,7 @@ ENDIF
         LDX     #sump
         JSR     set_initial_value
         LDX     #numeratorp
-        JSR     set_initial_value
+        JSR     set_initial_value_bigendian
 
 ; Store the number of digits in the results array
         LDX     #ndigits
@@ -472,6 +468,43 @@ ENDIF
 
 .loop
         _DEC16 tmp
+
+        LDA    #0
+        STA    (tmp),Y
+
+        LDA    tmp
+        CMP    0,X
+        BNE    loop
+        LDA    tmp+1
+        CMP    1,X
+        BNE    loop
+        RTS
+}
+
+.set_initial_value_bigendian
+{
+        LDA    0,X
+        STA    tmp
+        LDA    1,X
+        STA    tmp+1
+
+        _SUB16  tmp, tmp, big
+        _SUB16C tmp, tmp, PAD ; tmp now points to element big+PAD
+
+        LDY    #PAD
+        LDA    #0
+.pad
+        STA    (tmp),Y
+        DEY
+        BNE    pad
+
+        _ADD16C tmp, tmp, PAD+1 ; tmp now points to element big-1
+
+        LDA    #4
+        STA    (tmp),Y
+
+.loop
+        _INC16 tmp
 
         LDA    #0
         STA    (tmp),Y
