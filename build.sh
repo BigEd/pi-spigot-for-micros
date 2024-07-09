@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Enable debug output
-DEBUG=0
+DEBUG=1
 
 # Build everything in a subdirectory
 BUILD=build

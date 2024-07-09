@@ -50,7 +50,7 @@ include "spigot-common.6502.asm"
         STX     memtop
         STY     memtop+1
 
-        JMP     param_loop
+        JMP     param_init
 
 .running_over_tube
 
@@ -63,6 +63,71 @@ include "spigot-common.6502.asm"
         STA    memtop
         LDA    #&F8
         STA    memtop+1
+
+
+.param_init
+
+IF DEBUG
+        JSR     print_string
+        EQUS    "Data start = "
+        NOP
+        LDA     #<code_end
+        STA     arg1
+        LDA     #>code_end
+        STA     arg1+1
+        LDX     #arg1
+        JSR     hex16
+
+        JSR     print_string
+        EQUS    "  Data end = "
+        NOP
+        LDX     #memtop
+        JSR     hex16
+
+        ; Add 4 lots of padding to membot
+        LDX     #arg1
+        JSR     add_pad
+        JSR     add_pad
+        JSR     add_pad
+
+        ; Calculate space = memtop - membot - 4 * pad
+        SEC
+        LDA     memtop
+        SBC     arg1
+        STA     arg1
+        LDA     memtop+1
+        SBC     arg1+1
+        STA     arg1+1
+
+        ; ndigits = space * 4 log 2
+
+        ; calculate space * 2 log 2
+        LDA     #<(&10000 * 2 * LOG(2)-1)
+        STA     arg2
+        LDA     #>(&10000 * 2 * LOG(2)-1)
+        STA     arg2+1
+
+        JSR     multiply_16x16
+
+        ; do the final *2
+        ASL     arg1
+        ROL     arg1+1
+
+        LDA     arg1
+        STA     num
+        LDA     arg1+1
+        STA     num+1
+        LDX     #0
+        STX     num+2
+        STX     num+3
+
+        JSR     print_string
+        EQUS    "Max Digits = "
+        NOP
+        LDY     #' '
+        JSR     print_decimal_32
+        JSR     OSNEWL
+ENDIF
 
 ; Process the next parameter (as a number of digits)
 
