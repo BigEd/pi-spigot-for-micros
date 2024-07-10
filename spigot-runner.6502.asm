@@ -138,7 +138,8 @@ IF DEBUG
         JSR     print_string
         EQUS    "Max Digits = "
         NOP
-        LDY     #' '
+        LDX     #0
+        LDY     #0
         JSR     print_decimal_32
         JSR     OSNEWL
 ENDIF
