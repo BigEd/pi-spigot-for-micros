@@ -84,13 +84,13 @@ IF DEBUG
         LDX     #memtop
         JSR     hex16
 
-        ; Add 4 lots of padding to membot
+        ; Add 3 lots of padding to membot
         LDX     #arg1
         JSR     add_pad
         JSR     add_pad
         JSR     add_pad
 
-        ; Calculate space = memtop - membot - 4 * pad
+        ; Calculate space = memtop - (membot + 3 * pad)
         SEC
         LDA     memtop
         SBC     arg1
