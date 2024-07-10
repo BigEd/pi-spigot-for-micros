@@ -16,17 +16,24 @@ include "spigot-common.6502.asm"
 
 .runner
 {
-
         JSR     print_spigot_name
 
 ; Get a pointer to the *RUN parameters
 ; Note, this will always be in I/O memory
         LDA     #&01
-        LDX     #params
+        LDX     #tmp
         LDY     #&00
         STY     resultp
-        STY     lastpage
         JSR     OSARGS
+
+; Copy the address of the parameter string (in host memory) into an OSWORD 5 block for later reading
+        LDA     tmp
+        STA     osword_05_block
+        LDA     tmp+1
+        STA     osword_05_block+1
+        LDA     #&FF
+        STA     osword_05_block+2
+        STA     osword_05_block+3
 
 ; Are we running on the HOST?
         LDA     #&EA
@@ -54,16 +61,11 @@ include "spigot-common.6502.asm"
 
 .running_over_tube
 
-; Fetch the parameter string from IO Memory usimg OSWORD
-        JSR     fetch_params_over_tube
-
 ; Allow use of memory upto &F800
-
         LDA    #&00
         STA    memtop
         LDA    #&F8
         STA    memtop+1
-
 
 .param_init
 
@@ -84,84 +86,105 @@ IF DEBUG
         LDX     #memtop
         JSR     hex16
 
-        ; Add 4 lots of padding to membot
-        LDX     #arg1
-        JSR     add_pad
-        JSR     add_pad
-        JSR     add_pad
-
-        ; Calculate space = memtop - membot - 4 * pad
+        ; 16 bit Binary Search
+        ;  num = &0000
+        ; temp = &8000
+        ; while (temp > 0) {
+        ;     if (allocate_bignums(num + tmp) is OK) {
+        ;         num += temp;
+        ;     temp /= 2;
+        ; }
+        LDA     #&00
+        STA     ndigits
+        STA     ndigits+1
+        STA     ndigits+2
+        STA     ndigits+3
+        STA     temp
+        LDA     #&80
+        STA     temp+1
+.search_loop
+        CLC
+        LDA     ndigits
+        ADC     temp
+        STA     ndigits
+        LDA     ndigits+1
+        ADC     temp+1
+        STA     ndigits+1
+        JSR     allocate_bignums
+        BCC     search_next
         SEC
-        LDA     memtop
-        SBC     arg1
-        STA     arg1
-        LDA     memtop+1
-        SBC     arg1+1
-        STA     arg1+1
+        LDA     ndigits
+        SBC     temp
+        STA     ndigits
+        LDA     ndigits+1
+        SBC     temp+1
+        STA     ndigits+1
+.search_next
+        LSR     temp+1
+        ROR     temp
+        LDA     temp
+        ORA     temp+1
+        BNE     search_loop
 
-        ; ndigits = space * 4 log 2
-
-        ; calculate space * 2 log 2
-        LDA     #<(&10000 * 2 * LOG(2)-1)
-        STA     arg2
-        LDA     #>(&10000 * 2 * LOG(2)-1)
-        STA     arg2+1
-
-        JSR     multiply_16x16
-
-        ; do the final *2
-        ASL     arg1
-        ROL     arg1+1
-
-        LDA     arg1
+        LDA     ndigits
         STA     num
-        LDA     arg1+1
+        LDA     ndigits+1
         STA     num+1
-        LDX     #0
-        STX     num+2
-        STX     num+3
+        LDA     ndigits+2
+        STA     num+2
+        LDA     ndigits+3
+        STA     num+3
 
         JSR     print_string
         EQUS    "Max Digits = "
         NOP
-        LDY     #' '
+        LDX     #0
+        LDY     #0
         JSR     print_decimal_32
         JSR     OSNEWL
 ENDIF
 
+; Initialize lastpage so we know if BASIC has been trampled
+        LDA     #&00
+        STA     lastpage
+
 ; Process the next parameter (as a number of digits)
 
+        LDA     #&20
+        PHA
+
 .param_loop
+        PLA                     ; restore next param char
+
         LDY     #&00
         STY     ndigits
         STY     ndigits+1
         STY     ndigits+2
         STY     ndigits+3
-        JSR     skip_delimiters
-        CMP     #&0D
-        BNE     param_found
-        JMP     done
 
+.param_char_loop
+        CMP     #&0D
+        BNE     not_done
+        JMP     done
+.not_done
+        CMP     #' '
+        BEQ     skip_it
+        CMP     #','
+        BNE     param_found
+.skip_it
+        JSR     param_getchar
+        JMP     param_char_loop
 .param_found
-        LDA     (params), Y
         CMP     #'0'
         BCC     param_done
         CMP     #'9'+1
         BCS     param_done
         AND     #&0F
         JSR     mult_ndigits_by_10_and_add_A
-        INY
-        BNE     param_found
+        JSR     param_getchar
+        JMP     param_found
 .param_done
-
-; Increments param ready to parse the next parameter
-        TYA
-        CLC
-        ADC     params
-        STA     params
-        BCC     param_print
-        INC     params+1
-.param_print
+        PHA     ; stack the non digit character
 
 ; Print the number of digits just parsed
         JSR     print_string
@@ -180,30 +203,10 @@ ENDIF
         JSR     print_decimal_32
         JSR     OSNEWL
 
-; Check ndigits < &10000
-        LDA     ndigits+2
-        ORA     ndigits+3
-        BNE     overflow
+        JSR     allocate_bignums
+        PHP
 
-; Calculate big = ((numdigits * 5) DIV 12) + 2
-        LDA     ndigits
-        STA     arg1
-        LDA     ndigits+1
-        STA     arg1+1
-        LDA     #<(1+&10000*LOG(10)/LOG(2)/8)
-        STA     arg2
-        LDA     #>(1+&10000*LOG(10)/LOG(2)/8)
-        STA     arg2+1
-        JSR     multiply_16x16
-        CLC
-        LDA     arg1
-        ADC     #2
-        STA     big
-        LDA     arg1+1
-        ADC     #0
-        STA     big+1
-
-; Print the number of digits just parsed
+; Print the required bignum
         JSR     print_string
         EQUS    "   Big = "
         NOP
@@ -218,57 +221,15 @@ ENDIF
         JSR     print_decimal_32
         JSR     OSNEWL
 
-; Calculate sump
-
-        LDA     #<code_end
-        STA     sump
-        LDA     #>code_end
-        STA     sump+1
-        LDX     #sump
-        JSR     add_pad
+        PLP
         BCC     skip_overflow
 
-; Digits was too large for the available memory
-.overflow
         JSR     print_string
         EQUS    "Not enough memory", 13
         NOP
         JMP     param_loop
 
 .skip_overflow
-
-; Calculate numeratorp
-
-        LDA     sump
-        STA     numeratorp
-        LDA     sump+1
-        STA     numeratorp+1
-        LDX     #numeratorp
-        JSR     add_pad
-        BCS     overflow
-        JSR     add_big
-        BCS     overflow
-
-; Calculate end of numeratorp
-
-        LDX     #numeratorp
-        JSR     add_pad
-        BCS     overflow
-        JSR     add_big
-        BCS     overflow
-
-        LDA     numeratorp
-        CMP     memtop
-        LDA     numeratorp+1
-        SBC     memtop+1
-        BCS     overflow
-
-; record the highest page we have used
-        LDA     numeratorp+1
-        CMP     lastpage
-        BCC     smaller
-        STA     lastpage
-.smaller
 
 ; Initialize bignums
 
@@ -325,8 +286,7 @@ NEXT
 
 .done
         LDY     resultp
-        BNE     summary
-        RTS
+        BEQ     exit
 
 .summary
         JSR     print_string
@@ -353,10 +313,13 @@ NEXT
         CPY     resultp
         BCC     result_loop
 
+.exit
 ; Have we possibly clobbered the current language?
+IF BASE<>&400
         LDA     lastpage
         BMI     exit_by_running_basic
         RTS
+ENDIF
 
 ; If so, exit with *BASIC
 .exit_by_running_basic
@@ -397,48 +360,25 @@ ENDIF
 }
 
 ; ==================================================================================
-; Fetch the *RUN params over the tube usimg OSWORD A=&05
+; Fetch the *RUN params usimg OSWORD A=&05 so it works over the tube
 ; ==================================================================================
 
-.fetch_params_over_tube
+.param_getchar
 {
-        LDA    params
-        STA    osword_05_block
-        LDA    params+1
-        STA    osword_05_block+1
-        LDA    #&FF
-        STA    osword_05_block+2
-        STA    osword_05_block+3
-
-        LDA    #<buffer
-        STA    params
-        LDA    #>buffer
-        STA    params+1
-
-        LDA    #0
-        STA    tmp
-.loop
         LDA    #&05
         LDX    #<osword_05_block
         LDY    #>osword_05_block
-        JSR    OSWORD
-        LDA    osword_05_block+4
-        LDY    tmp
-        STA    (params), Y
-        INC    tmp
-
+        JSR    OSWORD               ; reading the next parameter char
         INC    osword_05_block
         BNE    skip
         INC    osword_05_block+1
 .skip
-        CMP    #&0D
-        BNE    loop
+        LDA    osword_05_block+4
         RTS
+}
 
 .osword_05_block
         SKIP    5
-
-}
 
 ; ==================================================================================
 ; Set Initial value to all zero, except for a 4 in element big-1
@@ -565,23 +505,6 @@ FOR I,0,3
         STA     I,X
         INY
 NEXT
-        RTS
-}
-
-; ==================================================================================
-; Skip over zero or more space or comma delimiters
-; ==================================================================================
-
-.skip_delimiters
-{
-        DEY
-.loop
-        INY
-        LDA     (params),Y
-        CMP     #' '
-        BEQ     loop
-        CMP     #','
-        BEQ     loop
         RTS
 }
 
@@ -778,6 +701,92 @@ NEXT
         EQUD    1000000000
 }
 
+
+; ==================================================================================
+; Allocate the sump and numeratorp buffers for a specified ndigits
+;
+; Returns C=0 if OK; C=1 if insufficient space
+; ==================================================================================
+
+
+.allocate_bignums
+{
+; Check ndigits < &10000
+        LDA     ndigits+2
+        ORA     ndigits+3
+        BNE     overflow
+
+; Calculate raw bignum = ndigits / (8 * LOG(2)
+        LDA     ndigits
+        STA     arg1
+        LDA     ndigits+1
+        STA     arg1+1
+        LDA     #<(1+&10000/LOG(2)/8)  ;; The +1 is to ensure rounding up
+        STA     arg2
+        LDA     #>(1+&10000/LOG(2)/8)
+        STA     arg2+1
+        JSR     multiply_16x16
+
+; Calculate bignum = raw bignum + 2
+        CLC
+        LDA     arg1
+        ADC     #2
+        STA     big
+        LDA     arg1+1
+        ADC     #0
+        STA     big+1
+
+; Calculate sump (little endian)
+        LDA     #<code_end
+        STA     sump
+        LDA     #>code_end
+        STA     sump+1
+        LDX     #sump
+        JSR     add_pad          ; padding before sum
+        BCS     overflow
+
+; Calculate numeratorp (bit endian)
+
+        LDA     sump
+        STA     numeratorp
+        LDA     sump+1
+        STA     numeratorp+1
+        LDX     #numeratorp
+        JSR     add_big          ; sum
+        BCS     overflow
+        JSR     add_pad          ; padding between sum and numerator
+        BCS     overflow
+        JSR     add_big          ; numerator
+        BCS     overflow
+
+; Calculate end of numeratorp
+
+        LDA     numeratorp
+        STA     tmp
+        LDA     numeratorp+1
+        STA     tmp+1
+        LDX     #tmp
+        JSR     add_pad          ; padding after numerator
+        BCS     overflow
+
+        LDA     tmp
+        CMP     memtop
+        LDA     tmp+1
+        SBC     memtop+1 ; C=0 if less than memtop
+        BCS     overflow
+
+; record the highest page we have used
+        LDA     tmp+1
+        CMP     lastpage
+        BCC     smaller
+        STA     lastpage
+.smaller
+        CLC
+        RTS
+.overflow
+        SEC
+        RTS
+}
 .code_end
 
 SAVE code_start, code_end

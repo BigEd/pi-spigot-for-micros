@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Enable debug output
-DEBUG=1
+# Enable debug output by invoking with:
+#    env DEBUG=1 ./build.sh
+# or similar
+DEBUG=${DEBUG:-0}
 
 # Build everything in a subdirectory
 BUILD=build
@@ -34,7 +36,7 @@ do
         echo "PUTBASIC \"spigot-bbp.basic.txt\", \"${STEM}BAS\"" >> ${BUILD}/${MKSSD}
     fi
 
-    for BASE in 08 0E 19
+    for BASE in 04 08 0E 19
     do
         NAME=${STEM}${BASE}
 
