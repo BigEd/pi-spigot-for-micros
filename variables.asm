@@ -45,17 +45,15 @@ DEBUG          =? FALSE
 ; ==================================================================================
 
     memtop = &80 ; 2 bytes
-    params = &82 ; 2 bytes
-       num = &84 ; 4 bytes
-      arg1 = &88 ; 2 bytes
-      arg2 = &8A ; 2 bytes
-       tmp = &8C ; 2 bytes
-       pad = &8E ; 1 bytes
-  lastpage = &8F ; 1 bytes
+       num = &82 ; 4 bytes
+      arg1 = &86 ; 2 bytes
+      arg2 = &88 ; 2 bytes
+       tmp = &8A ; 2 bytes
+       pad = &8C ; 1 byte
+  lastpage = &8D ; 1 byte
+   resultp = &8E ; 1 byte
 
-   results = &600
-   resultp = &6FF
-    buffer = &700
+  results = &110 ; results on the stack (8 bytes per entry)
 
 ; ==================================================================================
 ; Parameters for the spigot digit subroutine

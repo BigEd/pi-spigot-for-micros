@@ -16,17 +16,24 @@ include "spigot-common.6502.asm"
 
 .runner
 {
-
         JSR     print_spigot_name
 
 ; Get a pointer to the *RUN parameters
 ; Note, this will always be in I/O memory
         LDA     #&01
-        LDX     #params
+        LDX     #tmp
         LDY     #&00
         STY     resultp
-        STY     lastpage
         JSR     OSARGS
+
+; Copy the address of the parameter string (in host memory) into an OSWORD 5 block for later reading
+        LDA     tmp
+        STA     osword_05_block
+        LDA     tmp+1
+        STA     osword_05_block+1
+        LDA     #&FF
+        STA     osword_05_block+2
+        STA     osword_05_block+3
 
 ; Are we running on the HOST?
         LDA     #&EA
@@ -54,16 +61,11 @@ include "spigot-common.6502.asm"
 
 .running_over_tube
 
-; Fetch the parameter string from IO Memory usimg OSWORD
-        JSR     fetch_params_over_tube
-
 ; Allow use of memory upto &F800
-
         LDA    #&00
         STA    memtop
         LDA    #&F8
         STA    memtop+1
-
 
 .param_init
 
@@ -141,39 +143,47 @@ IF DEBUG
         JSR     OSNEWL
 ENDIF
 
+; Initialize lastpage so we know if BASIC has been trampled
+        LDA     #&00
+        STA     lastpage
+
 ; Process the next parameter (as a number of digits)
 
+        LDA     #&20
+        PHA
+
 .param_loop
+        PLA                     ; restore next param char
+
         LDY     #&00
         STY     ndigits
         STY     ndigits+1
         STY     ndigits+2
         STY     ndigits+3
-        JSR     skip_delimiters
-        CMP     #&0D
-        BNE     param_found
-        JMP     done
 
+.param_char_loop
+        CMP     #&0D
+        BNE     not_done
+        JMP     done
+.not_done
+        CMP     #' '
+        BEQ     skip_it
+        CMP     #','
+        BNE     param_found
+.skip_it
+        JSR     param_getchar
+        JMP     param_char_loop
 .param_found
-        LDA     (params), Y
         CMP     #'0'
         BCC     param_done
         CMP     #'9'+1
         BCS     param_done
         AND     #&0F
         JSR     mult_ndigits_by_10_and_add_A
-        INY
-        BNE     param_found
+        JSR     param_getchar
+        JMP     param_found
 .param_done
-
-; Increments param ready to parse the next parameter
-        TYA
-        CLC
-        ADC     params
-        STA     params
-        BCC     param_print
-        INC     params+1
-.param_print
+        PHA     ; stack the non digit character
 
 ; Print the number of digits just parsed
         JSR     print_string
@@ -219,13 +229,6 @@ ENDIF
         JMP     param_loop
 
 .skip_overflow
-
-; record the highest page we have used
-        LDA     tmp+1
-        CMP     lastpage
-        BCC     smaller
-        STA     lastpage
-.smaller
 
 ; Initialize bignums
 
@@ -282,8 +285,7 @@ NEXT
 
 .done
         LDY     resultp
-        BNE     summary
-        RTS
+        BEQ     exit
 
 .summary
         JSR     print_string
@@ -310,10 +312,13 @@ NEXT
         CPY     resultp
         BCC     result_loop
 
+.exit
 ; Have we possibly clobbered the current language?
+IF BASE<>&400
         LDA     lastpage
         BMI     exit_by_running_basic
         RTS
+ENDIF
 
 ; If so, exit with *BASIC
 .exit_by_running_basic
@@ -354,48 +359,25 @@ ENDIF
 }
 
 ; ==================================================================================
-; Fetch the *RUN params over the tube usimg OSWORD A=&05
+; Fetch the *RUN params usimg OSWORD A=&05 so it works over the tube
 ; ==================================================================================
 
-.fetch_params_over_tube
+.param_getchar
 {
-        LDA    params
-        STA    osword_05_block
-        LDA    params+1
-        STA    osword_05_block+1
-        LDA    #&FF
-        STA    osword_05_block+2
-        STA    osword_05_block+3
-
-        LDA    #<buffer
-        STA    params
-        LDA    #>buffer
-        STA    params+1
-
-        LDA    #0
-        STA    tmp
-.loop
         LDA    #&05
         LDX    #<osword_05_block
         LDY    #>osword_05_block
-        JSR    OSWORD
-        LDA    osword_05_block+4
-        LDY    tmp
-        STA    (params), Y
-        INC    tmp
-
+        JSR    OSWORD               ; reading the next parameter char
         INC    osword_05_block
         BNE    skip
         INC    osword_05_block+1
 .skip
-        CMP    #&0D
-        BNE    loop
+        LDA    osword_05_block+4
         RTS
+}
 
 .osword_05_block
         SKIP    5
-
-}
 
 ; ==================================================================================
 ; Set Initial value to all zero, except for a 4 in element big-1
@@ -485,23 +467,6 @@ FOR I,0,3
         STA     I,X
         INY
 NEXT
-        RTS
-}
-
-; ==================================================================================
-; Skip over zero or more space or comma delimiters
-; ==================================================================================
-
-.skip_delimiters
-{
-        DEY
-.loop
-        INY
-        LDA     (params),Y
-        CMP     #' '
-        BEQ     loop
-        CMP     #','
-        BEQ     loop
         RTS
 }
 
@@ -771,6 +736,13 @@ NEXT
         LDA     tmp+1
         SBC     memtop+1 ; C=0 if less than memtop
         BCS     overflow
+
+; record the highest page we have used
+        LDA     tmp+1
+        CMP     lastpage
+        BCC     smaller
+        STA     lastpage
+.smaller
         CLC
         RTS
 .overflow
