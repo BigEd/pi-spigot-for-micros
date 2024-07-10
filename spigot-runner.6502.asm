@@ -84,56 +84,54 @@ IF DEBUG
         LDX     #memtop
         JSR     hex16
 
-        ; Add 3 lots of padding to membot
-        LDX     #arg1
-        JSR     add_pad
-        JSR     add_pad
-        JSR     add_pad
-
-        ; Calculate raw space = memtop - (membot + 3 * pad)
+        ; 16 bit Binary Search
+        ;  num = &0000
+        ; temp = &8000
+        ; while (temp > 0) {
+        ;     if (allocate_bignums(num + tmp) is OK) {
+        ;         num += temp;
+        ;     temp /= 2;
+        ; }
+        LDA     #&00
+        STA     ndigits
+        STA     ndigits+1
+        STA     ndigits+2
+        STA     ndigits+3
+        STA     temp
+        LDA     #&80
+        STA     temp+1
+.search_loop
+        CLC
+        LDA     ndigits
+        ADC     temp
+        STA     ndigits
+        LDA     ndigits+1
+        ADC     temp+1
+        STA     ndigits+1
+        JSR     allocate_bignums
+        BCC     search_next
         SEC
-        LDA     memtop
-        SBC     arg1
-        STA     arg1
-        LDA     memtop+1
-        SBC     arg1+1
-        STA     arg1+1
+        LDA     ndigits
+        SBC     temp
+        STA     ndigits
+        LDA     ndigits+1
+        SBC     temp+1
+        STA     ndigits+1
+.search_next
+        LSR     temp+1
+        ROR     temp
+        LDA     temp
+        ORA     temp+1
+        BNE     search_loop
 
-        ; Calculate largest bignum = raw space / 2
-        LSR     arg1+1
-        ROR     arg1
-
-        ; Calculate tight bignum = bignum - 2
-        SEC
-        LDA     arg1
-        SBC     #2
-        STA     arg1
-        LDA     arg1+1
-        SBC     #0
-        STA     arg1+1
-
-        ; Constant C2 = 2*LOG(2) (rounded down)
-        LDA     #<(&10000 * 2 * LOG(2))
-        STA     arg2
-        LDA     #>(&10000 * 2 * LOG(2))
-        STA     arg2+1
-
-        ; ndigits = 4 * tight bignum * 2*LOG(2)
-        JSR     multiply_16x16
-
-        ; do the final *4
-        ASL     arg1
-        ROL     arg1+1
-        ASL     arg1
-        ROL     arg1+1
-
-        LDA     arg1
+        LDA     ndigits
         STA     num
-        LDA     arg1+1
+        LDA     ndigits+1
         STA     num+1
-        LDX     #0
-        STX     num+2
-        STX     num+3
+        LDA     ndigits+2
+        STA     num+2
+        LDA     ndigits+3
+        STA     num+3
 
         JSR     print_string
         EQUS    "Max Digits = "
@@ -194,30 +192,10 @@ ENDIF
         JSR     print_decimal_32
         JSR     OSNEWL
 
-; Check ndigits < &10000
-        LDA     ndigits+2
-        ORA     ndigits+3
-        BNE     overflow
+        JSR     allocate_bignums
+        PHP
 
-; Calculate big = ((numdigits * 5) DIV 12) + 2
-        LDA     ndigits
-        STA     arg1
-        LDA     ndigits+1
-        STA     arg1+1
-        LDA     #<(1+&10000*LOG(10)/LOG(2)/8)
-        STA     arg2
-        LDA     #>(1+&10000*LOG(10)/LOG(2)/8)
-        STA     arg2+1
-        JSR     multiply_16x16
-        CLC
-        LDA     arg1
-        ADC     #2
-        STA     big
-        LDA     arg1+1
-        ADC     #0
-        STA     big+1
-
-; Print the number of digits just parsed
+; Print the required bignum
         JSR     print_string
         EQUS    "   Big = "
         NOP
@@ -232,54 +210,15 @@ ENDIF
         JSR     print_decimal_32
         JSR     OSNEWL
 
-; Calculate sump
-
-        LDA     #<code_end
-        STA     sump
-        LDA     #>code_end
-        STA     sump+1
-        LDX     #sump
-        JSR     add_pad
+        PLP
         BCC     skip_overflow
 
-; Digits was too large for the available memory
-.overflow
         JSR     print_string
         EQUS    "Not enough memory", 13
         NOP
         JMP     param_loop
 
 .skip_overflow
-
-; Calculate numeratorp
-
-        LDA     sump
-        STA     numeratorp
-        LDA     sump+1
-        STA     numeratorp+1
-        LDX     #numeratorp
-        JSR     add_pad
-        BCS     overflow
-        JSR     add_big
-        BCS     overflow
-
-; Calculate end of numeratorp
-
-        LDA     numeratorp
-        STA     tmp
-        LDA     numeratorp+1
-        STA     tmp+1
-        LDX     #tmp
-        JSR     add_pad
-        BCS     overflow
-        JSR     add_big
-        BCS     overflow
-
-        LDA     tmp
-        CMP     memtop
-        LDA     tmp+1
-        SBC     memtop+1
-        BCS     overflow
 
 ; record the highest page we have used
         LDA     tmp+1
@@ -759,6 +698,85 @@ NEXT
         EQUD    1000000000
 }
 
+
+; ==================================================================================
+; Allocate the sump and numeratorp buffers for a specified ndigits
+;
+; Returns C=0 if OK; C=1 if insufficient space
+; ==================================================================================
+
+
+.allocate_bignums
+{
+; Check ndigits < &10000
+        LDA     ndigits+2
+        ORA     ndigits+3
+        BNE     overflow
+
+; Calculate raw bignum = ndigits / (8 * LOG(2)
+        LDA     ndigits
+        STA     arg1
+        LDA     ndigits+1
+        STA     arg1+1
+        LDA     #<(1+&10000/LOG(2)/8)  ;; The +1 is to ensure rounding up
+        STA     arg2
+        LDA     #>(1+&10000/LOG(2)/8)
+        STA     arg2+1
+        JSR     multiply_16x16
+
+; Calculate bignum = raw bignum + 2
+        CLC
+        LDA     arg1
+        ADC     #2
+        STA     big
+        LDA     arg1+1
+        ADC     #0
+        STA     big+1
+
+; Calculate sump
+        LDA     #<code_end
+        STA     sump
+        LDA     #>code_end
+        STA     sump+1
+        LDX     #sump
+        JSR     add_pad
+        BCS     overflow
+
+; Calculate numeratorp
+
+        LDA     sump
+        STA     numeratorp
+        LDA     sump+1
+        STA     numeratorp+1
+        LDX     #numeratorp
+        JSR     add_big
+        BCS     overflow
+        JSR     add_pad
+        BCS     overflow
+
+; Calculate end of numeratorp
+
+        LDA     numeratorp
+        STA     tmp
+        LDA     numeratorp+1
+        STA     tmp+1
+        LDX     #tmp
+        JSR     add_big
+        BCS     overflow
+        JSR     add_pad
+        BCS     overflow
+
+        LDA     tmp
+        CMP     memtop
+        LDA     tmp+1
+        SBC     memtop+1 ; C=0 if less than memtop
+        BCS     overflow
+        CLC
+        RTS
+.overflow
+        SEC
+        RTS
+}
 .code_end
 
 SAVE code_start, code_end

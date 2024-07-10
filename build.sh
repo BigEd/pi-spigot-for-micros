@@ -36,7 +36,7 @@ do
         echo "PUTBASIC \"spigot-bbp.basic.txt\", \"${STEM}BAS\"" >> ${BUILD}/${MKSSD}
     fi
 
-    for BASE in 08 0E 19
+    for BASE in 04 08 0E 19
     do
         NAME=${STEM}${BASE}
 
