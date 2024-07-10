@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Enable debug output
-DEBUG=1
+# Enable debug output by invoking with:
+#    env DEBUG=1 ./build.sh
+# or similar
+DEBUG=${DEBUG:-0}
 
 # Build everything in a subdirectory
 BUILD=build
