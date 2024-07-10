@@ -90,7 +90,7 @@ IF DEBUG
         JSR     add_pad
         JSR     add_pad
 
-        ; Calculate space = memtop - (membot + 3 * pad)
+        ; Calculate raw space = memtop - (membot + 3 * pad)
         SEC
         LDA     memtop
         SBC     arg1
@@ -99,17 +99,31 @@ IF DEBUG
         SBC     arg1+1
         STA     arg1+1
 
-        ; ndigits = space * 4 log 2
+        ; Calculate largest bignum = raw space / 2
+        LSR     arg1+1
+        ROR     arg1
 
-        ; calculate space * 2 log 2
-        LDA     #<(&10000 * 2 * LOG(2)-1)
+        ; Calculate tight bignum = bignum - 2
+        SEC
+        LDA     arg1
+        SBC     #2
+        STA     arg1
+        LDA     arg1+1
+        SBC     #0
+        STA     arg1+1
+
+        ; Constant C2 = 2*LOG(2) (rounded down)
+        LDA     #<(&10000 * 2 * LOG(2))
         STA     arg2
-        LDA     #>(&10000 * 2 * LOG(2)-1)
+        LDA     #>(&10000 * 2 * LOG(2))
         STA     arg2+1
 
+        ; ndigits = 4 * tight bignum * 2*LOG(2)
         JSR     multiply_16x16
 
-        ; do the final *2
+        ; do the final *4
+        ASL     arg1
+        ROL     arg1+1
         ASL     arg1
         ROL     arg1+1
 
