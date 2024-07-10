@@ -1,4 +1,56 @@
 ; ==================================================================================
+; Multiplication tables
+;
+; Bellard uses 5 pages
+; BBP uses 4 pages
+; ==================================================================================
+
+ALIGN &100
+
+IF BELLARD
+
+.mult250_table
+FOR I,0,255
+EQUB (I*250) MOD &100
+NEXT
+FOR I,0,255
+EQUB (I*250) DIV &100
+NEXT
+
+.mult1000_table
+FOR I,0,255
+EQUB (I*1000) MOD &100
+NEXT
+FOR I,0,255
+EQUB ((I*1000) DIV &100) MOD &100
+NEXT
+FOR I,0,255
+EQUB (I*1000) DIV &10000
+NEXT
+
+ELSE
+
+.mult10_table
+FOR I,0,255
+EQUB (I*10) MOD &100
+NEXT
+FOR I,0,255
+EQUB (I*10) DIV &100
+NEXT
+
+.div16_table_lsb
+FOR I,0,255
+EQUB (I MOD 16) * 16
+NEXT
+
+.div16_table_msb
+FOR I,0,255
+EQUB (I DIV 16)
+NEXT
+
+ENDIF
+
+; ==================================================================================
 ; Note: Division code comes next, so page alignment doesn't randomly change
 ; ==================================================================================
 
@@ -427,27 +479,6 @@ carry2 = temp + 2
         RTS
 }
 
-ALIGN &100
-
-.mult250_table
-FOR I,0,255
-EQUB (I*250) MOD &100
-NEXT
-FOR I,0,255
-EQUB (I*250) DIV &100
-NEXT
-
-.mult1000_table
-FOR I,0,255
-EQUB (I*1000) MOD &100
-NEXT
-FOR I,0,255
-EQUB ((I*1000) DIV &100) MOD &100
-NEXT
-FOR I,0,255
-EQUB (I*1000) DIV &10000
-NEXT
-
 ELSE
 
 .mult10_little_endian
@@ -500,26 +531,6 @@ ELSE
         BNE     loop
         RTS
 }
-
-ALIGN &100
-
-.mult10_table
-FOR I,0,255
-EQUB (I*10) MOD &100
-NEXT
-FOR I,0,255
-EQUB (I*10) DIV &100
-NEXT
-
-.div16_table_lsb
-FOR I,0,255
-EQUB (I MOD 16) * 16
-NEXT
-
-.div16_table_msb
-FOR I,0,255
-EQUB (I DIV 16)
-NEXT
 
 ENDIF
 
