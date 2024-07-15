@@ -5,6 +5,10 @@
 # or similar
 DEBUG=${DEBUG:-0}
 
+PAGES=${PAGES:-04 08 0E 19}
+
+TARGETS=${TARGETS:-80,200,400,800,100,1000,3000}
+
 # Build everything in a subdirectory
 BUILD=build
 mkdir -p ${BUILD}
@@ -13,7 +17,7 @@ rm -f ${BUILD}/*
 # Prepare a !BOOT file
 cat > ${BUILD}/boot <<EOF
 *FX11
-*RUN BEL19 80,200,400,800,100,1000,3000
+*RUN BEL19 $TARGETS
 EOF
 
 # SSD File name
@@ -36,7 +40,7 @@ do
         echo "PUTBASIC \"spigot-bbp.basic.txt\", \"${STEM}BAS\"" >> ${BUILD}/${MKSSD}
     fi
 
-    for BASE in 04 08 0E 19
+    for BASE in $PAGES
     do
         NAME=${STEM}${BASE}
 
