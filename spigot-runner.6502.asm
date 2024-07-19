@@ -259,7 +259,7 @@ IF VISUALIZE
         LDA     #>DATA_START
         STA     tmp+1
         LDY     #&00
-        LDA     #&FF
+        LDA     #&AA
 .clear_loop
         STA     (tmp),Y
         INC     tmp

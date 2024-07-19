@@ -38,6 +38,13 @@ FOR I,0,1
 NEXT
 ENDMACRO
 
+MACRO _MOV16C result, arg1
+FOR I,0,1
+        LDA #((arg1 >> (I*8)) AND &FF)
+        STA result+I
+NEXT
+ENDMACRO
+
 MACRO _ADD16 result, arg1, arg2
         CLC
 FOR I,0,1

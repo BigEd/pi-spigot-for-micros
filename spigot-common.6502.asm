@@ -301,12 +301,37 @@ ELSE
 
 ENDIF
 
+IF VISUALIZE
+        _MOV16C np, DATA_START+LINE*2
+        _ADD16  np, np, lsb_index
+        LDY     #&00
+        LDA     #&00
+        STA     (np),Y
+        _MOV16C np, DATA_START+LINE*2
+        _ADD16  np, np, msb_index
+        LDY     #&00
+        LDA     #&FF
+        STA     (np),Y
+        _MOV16C np, DATA_END-LINE*2
+        _SUB16  np, np, lsb_index
+        LDY     #&00
+        LDA     #&00
+        STA     (np),Y
+        _MOV16C np, DATA_END-LINE*2
+        _SUB16  np, np, msb_index
+        LDY     #&00
+        LDA     #&FF
+        STA     (np),Y
+ENDIF
+
 ;   IF NumeratorP?M%=0 M%=M%-1
         _MOV16  np, numeratorp
         _SUB16  np, np, msb_index
         LDY     #0
         LDA     (np),Y
         BNE     num_not_zero
+        LDA     #&2A
+        JSR     OSWRCH
         _ADD16C msb_index, msb_index, &FFFF
 .num_not_zero
 
