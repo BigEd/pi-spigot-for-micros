@@ -9,6 +9,8 @@ PAGES=${PAGES:-04 08 0E 19}
 
 TARGETS=${TARGETS:-80,200,400,800,100,1000,3000}
 
+VISUALIZE=${VISUALIZE:-0}
+
 # Build everything in a subdirectory
 BUILD=build
 mkdir -p ${BUILD}
@@ -44,7 +46,7 @@ do
     do
         NAME=${STEM}${BASE}
 
-        beebasm -D DEBUG=${DEBUG} -D BELLARD=${BELLARD} -D BASE=0x${BASE}00 -dd -labels ${BUILD}/${NAME}.labels -i spigot-runner.6502.asm -v -o ${BUILD}/${NAME}.bin 2>&1 | tee ${BUILD}/${NAME}.log
+        beebasm -D DEBUG=${DEBUG} -D VISUALIZE=${VISUALIZE} -D BELLARD=${BELLARD} -D BASE=0x${BASE}00 -dd -labels ${BUILD}/${NAME}.labels -i spigot-runner.6502.asm -v -o ${BUILD}/${NAME}.bin 2>&1 | tee ${BUILD}/${NAME}.log
 
         echo "PUTFILE \"${BUILD}/${NAME}.bin\",\"${NAME}\",&${BASE}00,&${BASE}00" >> ${BUILD}/${MKSSD}
     done

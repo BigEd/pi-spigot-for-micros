@@ -4,6 +4,48 @@ include "macros.asm"
 
         ORG    BASE
 
+; Split screen between bignums (top) and text (bottom)
+IF VISUALIZE
+          MODE = 4
+         SPLIT = 8
+IF MODE = 0
+        SCREEN = &3000
+          ROWS = 32
+          COLS = 80
+ELIF MODE = 1
+        SCREEN = &3000
+          ROWS = 32
+          COLS = 40
+ELIF MODE = 2
+        SCREEN = &3000
+          ROWS = 32
+          COLS = 20
+ELIF MODE = 3
+        SCREEN = &4000
+          ROWS = 25
+          COLS = 80
+ELIF MODE = 4
+        SCREEN = &5800
+          ROWS = 32
+          COLS = 40
+ELIF MODE = 5
+        SCREEN = &5800
+          ROWS = 32
+          COLS = 20
+ELIF MODE = 6
+        SCREEN = &6000
+          ROWS = 25
+          COLS = 40
+ELSE
+        SCREEN = &7C00
+          ROWS = 25
+          COLS = 40
+ENDIF
+          LINE = (&8000-SCREEN) DIV ROWS
+    DATA_START = SCREEN
+      DATA_END = SCREEN + LINE * SPLIT - 1
+ENDIF
+
 .code_start
 
         JMP    runner
@@ -50,9 +92,9 @@ include "macros.asm"
         STA     big+1
 
 ; Calculate sump (little endian)
-        LDA     #<code_end
+        LDA     #<DATA_START
         STA     sump
-        LDA     #>code_end
+        LDA     #>DATA_START
         STA     sump+1
         LDX     #sump
         JSR     add_pad          ; padding before sum
@@ -87,6 +129,13 @@ include "macros.asm"
         LDA     tmp+1
         SBC     memtop+1 ; C=0 if less than memtop
         BCS     overflow
+
+IF VISUALIZE
+        LDA     #<DATA_END
+        STA     numeratorp
+        LDA     #>DATA_END
+        STA     numeratorp+1
+ENDIF
 
 ; record the highest page we have used
         LDA     tmp+1
@@ -200,6 +249,30 @@ include "spigot-common.6502.asm"
 
 .runner
 {
+IF VISUALIZE
+        JSR     print_string
+        EQUB    22,MODE                      ; MODE xxx
+        EQUB    28,0,ROWS-1,COLS-1,SPLIT+1   ; define text window
+        EQUB    12                           ; CLS
+        LDA     #<DATA_START
+        STA     tmp
+        LDA     #>DATA_START
+        STA     tmp+1
+        LDY     #&00
+        LDA     #&FF
+.clear_loop
+        STA     (tmp),Y
+        INC     tmp
+        BNE     clean_skip
+        INC     tmp+1
+.clean_skip
+        LDX     tmp
+        CPX     #<(DATA_END+1)
+        BNE     clear_loop
+        LDX     tmp+1
+        CPX     #>(DATA_END+1)
+        BNE     clear_loop
+ENDIF
         JSR     print_spigot_name
 
 ; Get a pointer to the *RUN parameters
@@ -236,8 +309,13 @@ include "spigot-common.6502.asm"
 ; TODO: Relocate
 
 ; Read the current value of HIMEM into memtop
+IF VISUALIZE
+        LDX     #<DATA_END
+        LDY     #>DATA_END
+ELSE
         LDA     #&84
         JSR     OSBYTE
+ENDIF
         STX     memtop
         STY     memtop+1
 
@@ -257,9 +335,9 @@ IF DEBUG
         JSR     print_string
         EQUS    "Data start = "
         NOP
-        LDA     #<code_end
+        LDA     #<DATA_START
         STA     arg1
-        LDA     #>code_end
+        LDA     #>DATA_START
         STA     arg1+1
         LDX     #arg1
         JSR     hex16
@@ -469,8 +547,10 @@ NEXT
         JMP     param_loop
 
 .done
+; Skip summary if there are fewer than two results
         LDY     resultp
-        BEQ     exit
+        CPY     #16     ; each result is 8 bytes
+        BCC     exit
 
 .summary
         JSR     print_string
@@ -799,5 +879,10 @@ NEXT
 }
 
 .code_end
+
+IF VISUALIZE
+ELSE
+.DATA_START
+ENDIF
 
 SAVE code_start, code_end, runner
