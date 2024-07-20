@@ -318,9 +318,6 @@ ENDMACRO
 
 MACRO _DIVINIT
 
-;   T%=0
-        _ZERO32 temp
-
 ;   FOR I%=M% TO L% STEP -1
 
         _SUB16  np, numeratorp, msb_index
@@ -349,9 +346,6 @@ MACRO _DIVADDSUB bytes,op
 ; This calls the _DIVINIT code as a subroutine
         JSR     divinit
 
-; self-modify the comparison at the end of the loop
-        LDA     np_end
-        STA     byte_loop_next+3
 ;   Scary self-modifying code to update the LDX #&xx and SBC #&xx operands
 
 ; Bit number threshold for applying the compare BEQ shortcut optimization
@@ -403,16 +397,56 @@ FOR i,1,bytes-1
 NEXT
 NEXT
 
-.byte_loop
+;.byte_loop_full_fat
+;     20D0   A6 64      LDX &64     ; unchanged
+;     20D2   B1 50      LDA (&50),Y
+;     20D4   85 64      STA &64
 
+; self-modify - configure for "full fat"
+        LDA     #&B1         ; LDA (zp),y opcode
+        STA     byte_loop+2
+        LDA     #np
+        STA     byte_loop+3
+        LDA     #&85         ; STA zp
+        STA     byte_loop+4
+
+; self-modify the comparison at the end of the loop
+
+; compare the LSB and Used Indexes
+        _CMP16  lsb_index, num_used_index
+        BCC     terminate_on_used_index    ; branch if lsb_index < num_used_index
+
+.terminate_on_lsb_index
+        LDA     np_end
+        STA     terminal_value_lsb+1
+        LDA     np_end+1
+        STA     terminal_value_msb+1
+        BNE     byte_loop_init
+.terminate_on_used_index
+        _SUB16  temp, numeratorp, num_used_index
+        LDA     temp
+        STA     terminal_value_lsb+1
+        LDA     temp+1
+        STA     terminal_value_msb+1
+
+; TODO try to move this back to DIVINIT
+
+.byte_loop_init
+;   T%=0
+        _ZERO32 temp
+
+.byte_loop
 ;       T%=T%*256+NumeratorP?I%
-FOR i,bytes-1,1,-1
+        LDX     temp+0
+        LDA     (np),Y           ; dynamically modified
+        STA     temp+0           ; dynamically modified
+IF bytes>2
+FOR i,bytes-1,2,-1
         LDA     temp+i-1
         STA     temp+i
 NEXT
-        LDA     (np),Y
-        STA     temp+0
-
+ENDIF
+        STX     temp+1
 ;       A will be used to accumulate the 8 result bits
         LDA     #0
 
@@ -489,21 +523,52 @@ ENDIF
 .byte_loop_next
         ; Check the LSB first, optimize for branch not taken
         LDA     np
-        CMP     #np_end
+.terminal_value_lsb
+        CMP     #np_end          ; dynamically modified
         BEQ     byte_loop_done
 
 .byte_loop_more
         _INC16  np
         _DEC16  sp
-        JMP     byte_loop
+        JMP     byte_loop         ; <<<<<<<<< TODO
 
 .byte_loop_done
         ; Check the MSB
         LDA     np+1
-        CMP     np_end+1
+.terminal_value_msb
+        CMP     #np_end+1         ; dynamically modified
         BNE     byte_loop_more
+
+; Finish something
+
+; compare the LSB and Used Indexes
+        _CMP16  lsb_index, num_used_index
+        BCC     modify_phase2    ; branch if lsb_index < num_used_index
         RTS
 
+.modify_phase2
+
+;.byte_loop_low_fat
+;     20D0   A6 64      LDX &64 ; unchanged
+;     20D2   A6 64      LDX &64
+;     20D4   84 64      STY &64
+
+; TODO: Save 2 cycles by modifying JMP byte_loop (see above)
+
+; self-modify - configure for "low fat"
+        LDA     #&A6          ; LDX zp
+        STA     byte_loop+2
+        LDA     #temp
+        STA     byte_loop+3
+        LDA     #&84          ; STY zp
+        STA     byte_loop+4
+
+        LDA     np_end
+        STA     terminal_value_lsb+1
+        LDA     np_end+1
+        STA     terminal_value_msb+1
+
+        BNE     byte_loop_more      ; branch always
 ENDMACRO
 
 MACRO ALTERNATE_JSR fn1,fn2,c

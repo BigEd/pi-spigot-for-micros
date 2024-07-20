@@ -80,6 +80,8 @@ numeratorp = &70 ; 2 byte pointer to numerator bignum
   saved_sp = &5E ; 1 byte saved BASIC stack pointer
     offset = &5F ; 1 byte offset into SumP array (deals with shift of 8)
 
+num_used_index = &7a
+
    divisor = &60 ; 4 bytes / 32 bit unsigned integer
       temp = &64 ; 4 bytes / 32 bit unsigned integer
 IF BELLARD

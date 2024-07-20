@@ -171,6 +171,7 @@ ENDIF
         _MOV16  msb_index, big
         _ADD16C msb_index, msb_index, &FFFF
 
+        _MOV16  num_used_index, msb_index
 ; REPEAT
 
 .spigot_loop
@@ -330,10 +331,17 @@ ENDIF
         LDY     #0
         LDA     (np),Y
         BNE     num_not_zero
-        LDA     #&2A
-        JSR     OSWRCH
-        _ADD16C msb_index, msb_index, &FFFF
+        _DEC16  msb_index
 .num_not_zero
+
+; Maintain a index for how much of the numerator is used (non zero)
+        _MOV16  np, numeratorp
+        _SUB16  np, np, num_used_index
+        LDY     #0
+        LDA     (np),Y
+        BEQ     num_zero
+        _DEC16  num_used_index
+.num_zero
 
 ;   IF base=base+106/256:L%=base
 
