@@ -402,13 +402,17 @@ NEXT
 ;     20D2   B1 50      LDA (&50),Y
 ;     20D4   85 64      STA &64
 
-; self-modify - configure for "full fat"
+; self-modify - configure for "full fat" (where we fetch numerator bytes from the bignum)
         LDA     #&B1         ; LDA (zp),y opcode
         STA     byte_loop+2
         LDA     #np
         STA     byte_loop+3
         LDA     #&85         ; STA zp
         STA     byte_loop+4
+        LDA     #<byte_loop
+        STA     byte_loop_jmp+1
+        LDA     #>byte_loop
+        STA     byte_loop_jmp+2
 
 ; self-modify the comparison at the end of the loop
 
@@ -437,7 +441,7 @@ NEXT
 
 .byte_loop
 ;       T%=T%*256+NumeratorP?I%
-        LDX     temp+0
+        LDX     temp+0           ; we skip this in the low-fat case
         LDA     (np),Y           ; dynamically modified
         STA     temp+0           ; dynamically modified
 IF bytes>2
@@ -530,7 +534,8 @@ ENDIF
 .byte_loop_more
         _INC16  np
         _DEC16  sp
-        JMP     byte_loop         ; <<<<<<<<< TODO
+.byte_loop_jmp
+        JMP     byte_loop         ; dynamically modified
 
 .byte_loop_done
         ; Check the MSB
@@ -561,13 +566,18 @@ ENDIF
 
 ; TODO: Save 2 cycles by modifying JMP byte_loop (see above)
 
-; self-modify - configure for "low fat"
+; self-modify - configure for "low fat" (where the "numerator" bytes are actually zeros)
         LDA     #&A6          ; LDX zp
         STA     byte_loop+2
         LDA     #temp
         STA     byte_loop+3
         LDA     #&84          ; STY zp
         STA     byte_loop+4
+
+        LDA     #<(byte_loop+2)	; we can skip the first instruction for a small speedup
+        STA     byte_loop_jmp+1
+        LDA     #>(byte_loop+2)
+        STA     byte_loop_jmp+2
 
         LDA     np_end
         STA     terminal_value_lsb+1
