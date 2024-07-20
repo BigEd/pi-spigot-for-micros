@@ -539,11 +539,17 @@ ENDIF
         CMP     #np_end+1         ; dynamically modified
         BNE     byte_loop_more
 
+; Already in low fat phase? then exit
+        LDA    byte_loop+2
+        CMP    #&A6
+        BEQ    exit
+
 ; Finish something
 
 ; compare the LSB and Used Indexes
         _CMP16  lsb_index, num_used_index
         BCC     modify_phase2    ; branch if lsb_index < num_used_index
+.exit
         RTS
 
 .modify_phase2
