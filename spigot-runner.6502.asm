@@ -66,9 +66,11 @@ ENDIF
 
 .allocate_bignums
 {
-; Check ndigits < &10000
+; Check ndigits < &40000
+        LDA     ndigits+3
+        BNE     overflow
         LDA     ndigits+2
-        ORA     ndigits+3
+        AND     #&FC
         BNE     overflow
 
 ; Calculate raw bignum = ndigits / (8 * LOG(2)
@@ -76,11 +78,13 @@ ENDIF
         STA     arg1
         LDA     ndigits+1
         STA     arg1+1
+        LDA     ndigits+2
+        STA     arg1+2
         LDA     #<(1+&10000/LOG(2)/8)  ;; The +1 is to ensure rounding up
         STA     arg2
         LDA     #>(1+&10000/LOG(2)/8)
         STA     arg2+1
-        JSR     multiply_16x16
+        JSR     multiply_24x16
 
 ; Calculate bignum = raw bignum + 2
         CLC
@@ -362,8 +366,9 @@ IF DEBUG
         STA     ndigits+2
         STA     ndigits+3
         STA     temp
-        LDA     #&80
         STA     temp+1
+        LDA     #&02
+        STA     temp+2
 .search_loop
         CLC
         LDA     ndigits
@@ -372,6 +377,9 @@ IF DEBUG
         LDA     ndigits+1
         ADC     temp+1
         STA     ndigits+1
+        LDA     ndigits+2
+        ADC     temp+2
+        STA     ndigits+2
         JSR     allocate_bignums
         BCC     search_next
         SEC
@@ -381,11 +389,16 @@ IF DEBUG
         LDA     ndigits+1
         SBC     temp+1
         STA     ndigits+1
+        LDA     ndigits+2
+        SBC     temp+2
+        STA     ndigits+2
 .search_next
-        LSR     temp+1
+        LSR     temp+2
+        ROR     temp+1
         ROR     temp
         LDA     temp
         ORA     temp+1
+        ORA     temp+2
         BNE     search_loop
 
         LDA     ndigits
@@ -838,12 +851,12 @@ NEXT
 
 
 ; ==================================================================================
-; Unsigned multiply of arg1 (16 bits) x arg2 (16 bits) with
-; the 32-bit result being placed in arg1 (MSB) and arg2 (LSB)
+; Unsigned multiply of arg1 (24 bits) x arg2 (16 bits) with
+; the 40-bit result being placed in arg1 (MSB) and arg2 (LSB)
 ; source: http://forum.6502.org/viewtopic.php?p=2846#p2846 (Garth Wilson)
 ; ==================================================================================
 
-.multiply_16x16
+.multiply_24x16
 {
         LDA     arg2     ; Get the multiplicand and
         STA     tmp      ; put it in the scratchpad.
@@ -853,12 +866,13 @@ NEXT
         STA     arg2     ; Zero-out the original multiplicand area.
         STA     arg2+1
 
-        LDY     #16      ; We'll loop 16 times.
+        LDY     #24      ; We'll loop 16 times.
 .l1
         ASL     arg2     ; Shift the entire 32 bits over one bit position.
         ROL     arg2+1
         ROL     arg1
         ROL     arg1+1
+        ROL     arg1+2
         BCC     l2       ; Skip the adding-in to the result if
                          ; the high bit shifted out was 0.
         CLC              ; Else, add multiplier to intermediate result.

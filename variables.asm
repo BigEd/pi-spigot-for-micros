@@ -46,12 +46,12 @@ DEBUG          =? FALSE
 
     memtop = &80 ; 2 bytes
        num = &82 ; 4 bytes
-      arg1 = &86 ; 2 bytes
-      arg2 = &88 ; 2 bytes
-       tmp = &8A ; 2 bytes
-       pad = &8C ; 1 byte
-  lastpage = &8D ; 1 byte
-   resultp = &8E ; 1 byte
+      arg1 = &86 ; 3 bytes
+      arg2 = &89 ; 2 bytes
+       tmp = &8B ; 2 bytes
+       pad = &8D ; 1 byte
+  lastpage = &8E ; 1 byte
+   resultp = &8F ; 1 byte
 
   results = &110 ; results on the stack (8 bytes per entry)
 
