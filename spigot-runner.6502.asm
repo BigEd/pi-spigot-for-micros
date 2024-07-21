@@ -101,31 +101,32 @@ ENDIF
         LDA     #>DATA_START
         STA     sump+1
         LDX     #sump
-        JSR     add_pad          ; padding before sum
+        JSR     add_pad          ; padding to push sump to the right
+        BCS     overflow
+        JSR     add_pad
         BCS     overflow
 
-; Calculate numeratorp (bit endian)
-
-        LDA     sump
+; Calculate numeratorp (big endian)
+        LDA     #<DATA_START
         STA     numeratorp
-        LDA     sump+1
+        LDA     #>DATA_START
         STA     numeratorp+1
         LDX     #numeratorp
-        JSR     add_big          ; sum
+        JSR     add_big
         BCS     overflow
-        JSR     add_pad          ; padding between sum and numerator
-        BCS     overflow
-        JSR     add_big          ; numerator
-        BCS     overflow
+;        JSR     add_pad          ; padding
+;        BCS     overflow
 
-; Calculate end of numeratorp
+; Calculate end of used memory
 
-        LDA     numeratorp
+        LDA     sump
         STA     tmp
-        LDA     numeratorp+1
+        LDA     sump+1
         STA     tmp+1
         LDX     #tmp
-        JSR     add_pad          ; padding after numerator
+        JSR     add_big
+        BCS     overflow
+        JSR     add_pad
         BCS     overflow
 
         LDA     tmp
@@ -133,13 +134,6 @@ ENDIF
         LDA     tmp+1
         SBC     memtop+1 ; C=0 if less than memtop
         BCS     overflow
-
-IF VISUALIZE
-        LDA     #<DATA_END
-        STA     numeratorp
-        LDA     #>DATA_END
-        STA     numeratorp+1
-ENDIF
 
 ; record the highest page we have used
         LDA     tmp+1
@@ -726,12 +720,12 @@ ENDIF
         LDA    #0
         STA    (tmp),Y
 
-        LDA    tmp
-        CMP    0,X
-        BNE    loop
-        LDA    tmp+1
-        CMP    1,X
-        BNE    loop
+;        LDA    tmp
+;        CMP    0,X
+;        BNE    loop
+;        LDA    tmp+1
+;        CMP    1,X
+;        BNE    loop
         RTS
 }
 

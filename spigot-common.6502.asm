@@ -347,6 +347,9 @@ ENDIF
         TYA
         INY
         STA     (np),Y
+        INY
+        LDA     #&FF
+        STA     (np),Y
 
 .num_zero
 
