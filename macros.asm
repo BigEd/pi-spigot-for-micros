@@ -258,7 +258,8 @@ MACRO _MULTIPLY_BIG_ENDIAN table, extra
 IF extra
         _SUB16C np_end, np_end, extra ; any extra bytes beyond the MSB?
 ENDIF
-        _SUB16  np, np, lsb_index ; np is the first element of work
+        LDX     #np
+        JSR     calc_num_lsb_index
         _CMP16  np_end, np        ; range check up front to be safe
         BCC     ok
         RTS

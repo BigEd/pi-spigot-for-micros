@@ -479,18 +479,9 @@ carry2 = temp + 2
 
 .rescale250256_big_endian
 {
-        ; np_end is one beyond the last element of work
-        _SUB16  np_end, np, big
-        ; np is the first element of work
-        ; we start at which ever of lsb_index or num_used_index larger
-        _CMP16  lsb_index, num_used_index
-        BCS     use_lsb_index
-        _SUB16  np, np, num_used_index ; this avoids rescaling of the zero element
-        _INC16  np
-        BNE     compare_end       ; always
-.use_lsb_index
-        _SUB16  np, np, lsb_index
-.compare_end
+        _SUB16  np_end, np, big   ; np_end is one beyond the last element of work
+        LDX     #np               ; np is the first element of work
+        JSR     calc_num_lsb_index
         _CMP16  np_end, np        ; range check up front to be safe
         BCC     ok
         RTS
@@ -552,7 +543,8 @@ ELSE
 
 .div16_big_endian
 {
-        _SUB16  np_end, np, lsb_index
+        LDX     #np_end
+        JSR     calc_num_lsb_index
         _INC16  np_end            ; np_end is one beyond the last element of work
         _SUB16  np, np, big
         _INC16  np                ; np is thefirst element of work
@@ -586,6 +578,27 @@ ELSE
 }
 
 ENDIF
+
+; Calculate the address of the LSB of the numerator, using which ever
+; of lsb_index or num_used_index is the larger.
+; Result written to 0,X and 1,X
+.calc_num_lsb_index
+{
+        _MOV16  temp, lsb_index
+        _CMP16  lsb_index, num_used_index
+        BCS     skip
+        _SUB16C temp, num_used_index, 1
+.skip
+        SEC
+        LDA     np
+        SBC     temp
+        STA     0,X
+        LDA     np+1
+        SBC     temp+1
+        STA     1,X
+        RTS
+        RTS
+}
 
 IF DEBUG
 
