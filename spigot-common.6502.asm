@@ -171,7 +171,10 @@ ENDIF
         _MOV16  msb_index, big
         _DEC16  msb_index
 
+; Index of the first zero element of the numerator
         _MOV16  num_used_index, msb_index
+        _DEC16  num_used_index
+
 ; REPEAT
 
 .spigot_loop
@@ -341,6 +344,21 @@ ENDIF
         LDA     (np),Y
         BEQ     num_zero
         _DEC16  num_used_index
+        TYA
+        INY
+        STA     (np),Y
+IF VISUALIZE
+{
+        LDX     #&08
+        LDA     #&FF
+.loop
+        INY
+        STA     (np),Y
+        DEX
+        BNE     loop
+}
+ENDIF
+
 .num_zero
 
 ;   IF base=base+106/256:L%=base
