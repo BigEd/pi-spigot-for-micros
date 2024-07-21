@@ -347,17 +347,6 @@ ENDIF
         TYA
         INY
         STA     (np),Y
-IF VISUALIZE
-{
-        LDX     #&08
-        LDA     #&FF
-.loop
-        INY
-        STA     (np),Y
-        DEX
-        BNE     loop
-}
-ENDIF
 
 .num_zero
 
