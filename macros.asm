@@ -285,6 +285,12 @@ ENDIF
         BNE     compare
         DEC     oplda+2
         DEC     opsta+2
+IF PITUBE_JIT_FIX
+        DEC     oplda+2
+        DEC     opsta+2
+        INC     oplda+2
+        INC     opsta+2
+ENDIF
 .compare
         DEY
         ; An equailty comparison is cheaper, but needs a range check up front

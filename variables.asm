@@ -22,6 +22,9 @@ OPTIMIZE_SHIFT =? BELLARD
 ; Include additiona debug support code
 DEBUG          =? FALSE
 
+; Workaround for a bug in the PiTubeDirect JIT Co Pro
+PITUBE_JIT_FIX =? TRUE
+
 ; ==================================================================================
 ; Constants
 ; ==================================================================================
