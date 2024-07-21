@@ -101,9 +101,9 @@ ENDIF
         LDA     #>DATA_START
         STA     sump+1
         LDX     #sump
-        JSR     add_pad          ; padding to push sump to the right
+        JSR     add_pad          ; add two lots of padding to seperate the sum and numerator
         BCS     overflow
-        JSR     add_pad
+        JSR     add_pad          ; (it's clear if you draw a picture that this is necessary)
         BCS     overflow
 
 ; Calculate numeratorp (big endian)
@@ -112,10 +112,10 @@ ENDIF
         LDA     #>DATA_START
         STA     numeratorp+1
         LDX     #numeratorp
-        JSR     add_big
+        JSR     add_big          ; space for the bignum
         BCS     overflow
-;        JSR     add_pad          ; padding
-;        BCS     overflow
+        JSR     add_pad          ; space for a few byte above the MSB for rescaling
+        BCS     overflow
 
 ; Calculate end of used memory
 
@@ -125,8 +125,6 @@ ENDIF
         STA     tmp+1
         LDX     #tmp
         JSR     add_big
-        BCS     overflow
-        JSR     add_pad
         BCS     overflow
 
         LDA     tmp
@@ -885,7 +883,6 @@ NEXT
         BNE     l1       ; then go around again.
         RTS
 }
-
 .code_end
 
 IF VISUALIZE
