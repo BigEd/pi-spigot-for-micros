@@ -147,7 +147,7 @@ ENDIF
 
 ; sp_end is a static pointer to the MSB of SumP where digits will appear
         _ADD16  sp_end, sump, big
-        _ADD16C sp_end, sp_end, &FFFF
+        _DEC16  sp_end
 
 IF BELLARD
 ; F%=0
@@ -169,7 +169,7 @@ ENDIF
 ; M%=big-1 : REM leading zeros index for fast forward division
 
         _MOV16  msb_index, big
-        _ADD16C msb_index, msb_index, &FFFF
+        _DEC16  msb_index
 
         _MOV16  num_used_index, msb_index
 ; REPEAT

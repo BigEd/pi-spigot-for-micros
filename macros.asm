@@ -333,7 +333,7 @@ MACRO _DIVINIT
 IF OPTIMIZE_SHIFT
         LDA     offset
         BNE     skip_adjust
-        _ADD16C sp, sp, &FFFF
+        _DEC16  sp
 .skip_adjust
 ENDIF
         LDY     #0
