@@ -2,6 +2,13 @@
 ; Optimization options, which add lots of extra code
 ; ==================================================================================
 
+; Include the 40-bit maths code in the second processor versions
+IF BELLARD AND BASE<&E00
+INCLUDE_DIV40 =? TRUE
+ELSE
+INCLUDE_DIV40 =? FALSE
+ENDIF
+
 ; Include versions of DIVADD/SUB with 24-bit maths for small divisors
 ; Bellard 1000 runs 17.9% faster
 ;     BBP 1000 runs 28.0% faster

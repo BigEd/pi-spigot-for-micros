@@ -54,6 +54,17 @@ ENDIF
 ; Note: Division code comes next, so page alignment doesn't randomly change
 ; ==================================================================================
 
+IF INCLUDE_DIV40
+.divadd40
+        CLC
+        BCC    div40
+
+.divsub40
+        SEC
+.div40
+        _DIVADDSUB 5
+ENDIF
+
 .divadd32
         CLC
         BCC    div32
@@ -95,6 +106,13 @@ ENDIF
 
 .divadd
 {
+        LDA     divisor+3
+IF INCLUDE_DIV40
+        BNE     do40
+ELSE
+        BNE     maths_overflow
+ENDIF
+
 IF OPTIMIZE_DIV24
         LDA     divisor+2
         BNE     do32
@@ -112,6 +130,11 @@ ENDIF
 ENDIF
         JSR     divadd32   ; JSR rather than JMP to aid profiling
         RTS
+IF INCLUDE_DIV40
+.do40
+        JSR     divadd40   ; JSR rather than JMP to aid profiling
+        RTS
+ENDIF
 }
 
 ; ==================================================================================
@@ -120,6 +143,13 @@ ENDIF
 
 .divsub
 {
+        LDA     divisor+3
+IF INCLUDE_DIV40
+        BNE     do40
+ELSE
+        BNE     maths_overflow
+ENDIF
+
 IF OPTIMIZE_DIV24
         LDA     divisor+2
         BNE     do32
@@ -137,7 +167,21 @@ ENDIF
 ENDIF
         JSR     divsub32   ; JSR rather than JMP to aid profiling
         RTS
+IF INCLUDE_DIV40
+.do40
+        JSR     divsub40   ; JSR rather than JMP to aid profiling
+        RTS
+ENDIF
 }
+
+IF NOT(INCLUDE_DIV40)
+.maths_overflow
+        JSR     print_string
+        EQUS    13, "Division overflow", 13
+        LDX     saved_sp
+        TXS
+        RTS
+ENDIF
 
 ; ==================================================================================
 ; Shared DIVINIT routine
