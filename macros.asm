@@ -334,6 +334,7 @@ MACRO _DIVINIT
         BCS     work_to_do
         PLA
         PLA
+        PLA                 ; pop the operation
         RTS
 .work_to_do
         _ADD16  sp, sump, msb_index
@@ -348,7 +349,10 @@ ENDIF
 
 ENDMACRO
 
-MACRO _DIVADDSUB bytes,op
+MACRO _DIVADDSUB bytes
+
+; The carry indicated the operation (C=0 for Add to Sum, C=1 for Subtract from Sum)
+        PHP
 
 ; This calls the _DIVINIT code as a subroutine
         JSR     divinit
@@ -402,6 +406,52 @@ NEXT
 FOR i,1,bytes-1
         ROL     divisor+i
 NEXT
+NEXT
+
+
+; Configure the operation
+        PLP
+        BCS     configure_subtract
+.configure_add
+        LDA     #&00    ; initial byte value
+        STA     modify-1
+        LDA     #&18    ; CLC opcode
+        STA     modify_clc_sec
+        LDA     #&90    ; BCC opcode
+        STA     modify_bcc_bcs
+        LDA     #&00    ; Constant operand
+        STA     modify_lda+1
+        LDA     #&B0    ; BCS opcode
+        STA     modify_bcs_bcc
+        ; In the add case we want the subtract block to end with
+        ; ORA #(&80 >> j)
+        ; C=0
+        LDX     #&09  ; ORA immediate opcode
+        LDA     #&80
+        BCC     configure_and_or
+.configure_subtract
+        LDA     #&FF    ; initial byte value
+        STA     modify-1
+        LDA     #&38    ; SEC opcode
+        STA     modify_clc_sec
+        LDA     #&B0    ; BCS opcode
+        STA     modify_bcc_bcs
+        LDA     #&FF    ; Constant operand
+        STA     modify_lda+1
+        LDA     #&90    ; BCC opcode
+        STA     modify_bcs_bcc
+        ; In the add case we want the subtract block to end with
+        ; AND #(&FF - (&80 >> j))
+        ; C=1
+        LDX     #&29  ; AND immediate opcode
+        LDA     #&7F
+.configure_and_or
+FOR j,1,8
+; Almost identical to COMPARE_J beloe
+ORA_AND_J = j*(bytes*14+5) - (j>COMP_OPT_THRESHOLD)*(j-COMP_OPT_THRESHOLD)*2 - 2
+        STX     modify + ORA_AND_J
+        STA     modify + ORA_AND_J+1
+        ROR     A
 NEXT
 
 ;.byte_loop_full_fat
@@ -459,7 +509,7 @@ NEXT
 ENDIF
         STX     temp+1
 ;       A will be used to accumulate the 8 result bits
-        LDA     #0
+        LDA     #0           ; dynmically modified
 
 .modify
 
@@ -489,7 +539,7 @@ FOR i,0,bytes-1
         STA     temp+i
 NEXT
         TXA                  ; restore A
-        ORA     #(&80 >> j)
+        ORA     #(&80 >> j)  ; dynmically modified (e.g. ORA #&40 for add, AND #&BF for subtract)
 
 ;       NEXT J%
 .bit_loop_next
@@ -501,34 +551,42 @@ NEXT
 
 ;     IF C% SumP!I%=S%+B%:ELSE SumP!I%=S%-B%
 
-IF (op)
         ; Add byte
-        CLC
+.modify_clc_sec
+        CLC                      ; dynamically modified (CLC/SEC)
         ADC     (sp),Y
         STA     (sp),Y
-        BCC     byte_loop_next
+.modify_bcc_bcs
+        BCC     byte_loop_next   ; dynamically modified (BCC/BCS)
 .cloop
         INY
-        LDA     #0
+.modify_lda
+        LDA     #0               ; dynamically modified (LDA #&00/LDA #&FF
         ADC     (sp),Y
         STA     (sp),Y
-        BCS     cloop
-ELSE
-        ; Subtract byte
-        ; SEC not needed because it's already set (assuming no arithmetic overflow)
-        STA     byte
-        LDA     (sp),Y
-        SBC     byte
-        STA     (sp),Y
-        BCS     byte_loop_next
-.cloop
-        INY
-        LDA     (sp),Y
-        SBC     #0
-        STA     (sp),Y
-        BCC     cloop
-ENDIF
+.modify_bcs_bcc
+        BCS     cloop            ; dynamically modified (BCS/BCC)
         LDY     #0
+
+; The subtract form looks like
+;
+;.modify_clc_sec
+;        SEC
+;        ADC     (sp),Y
+;        STA     (sp),Y
+;.modify_bcc_bcs
+;        BCS     byte_loop_next
+;.cloop
+;        INY
+;.modify_lda
+;        LDA     #&FF
+;        ADC     (sp),Y
+;        STA     (sp),Y
+;.modify_bcs_bcc
+;        BCC     cloop
+;        LDY     #0
+
+
 ;       NEXT
 
 .byte_loop_next

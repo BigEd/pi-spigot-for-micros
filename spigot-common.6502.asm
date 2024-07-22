@@ -55,26 +55,35 @@ ENDIF
 ; ==================================================================================
 
 .divadd32
-        _DIVADDSUB 4, TRUE
+        CLC
+        BCC    div32
 
 .divsub32
-        _DIVADDSUB 4, FALSE
+        SEC
+.div32
+        _DIVADDSUB 4
 
 IF OPTIMIZE_DIV24
 
 .divadd24
-        _DIVADDSUB 3, TRUE
+        CLC
+        BCC    div24
 
 .divsub24
-        _DIVADDSUB 3, FALSE
+        SEC
+.div24
+        _DIVADDSUB 3
 
 IF OPTIMIZE_DIV16
 
 .divadd16
-        _DIVADDSUB 2, TRUE
+        CLC
+        BCC    div16
 
 .divsub16
-        _DIVADDSUB 2, FALSE
+        SEC
+.div16
+        _DIVADDSUB 2
 
 ENDIF
 
