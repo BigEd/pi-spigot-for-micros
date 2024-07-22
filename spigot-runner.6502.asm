@@ -86,6 +86,10 @@ ENDIF
         STA     arg2+1
         JSR     multiply_24x16
 
+; If big >= 64K it clearly won't fit
+        LDA     arg1+2
+        BNE     overflow
+
 ; Calculate bignum = raw bignum + 2
         CLC
         LDA     arg1
