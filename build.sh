@@ -13,6 +13,8 @@ VISUALIZE=${VISUALIZE:-0}
 
 OPTIMIZE_DIV24=${OPTIMIZE_DIV24:-1}
 
+PITUBE_JIT_FIX=${PITUBE_JIT_FIX:-0}
+
 # Build everything in a subdirectory
 BUILD=build
 mkdir -p ${BUILD}
@@ -48,7 +50,7 @@ do
     do
         NAME=${STEM}${BASE}
 
-        beebasm -D DEBUG=${DEBUG} -D VISUALIZE=${VISUALIZE} -D BELLARD=${BELLARD} -D BASE=0x${BASE}00 -D OPTIMIZE_DIV24=${OPTIMIZE_DIV24} \
+        beebasm -D DEBUG=${DEBUG} -D VISUALIZE=${VISUALIZE} -D BELLARD=${BELLARD} -D BASE=0x${BASE}00 -D OPTIMIZE_DIV24=${OPTIMIZE_DIV24} -D PITUBE_JIT_FIX=${PITUBE_JIT_FIX} \
 		-dd -labels ${BUILD}/${NAME}.labels -i spigot-runner.6502.asm -v \
 		-o ${BUILD}/${NAME}.bin 2>&1 | tee ${BUILD}/${NAME}.log
 
