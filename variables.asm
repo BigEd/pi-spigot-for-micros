@@ -90,15 +90,15 @@ numeratorp = &70 ; 2 byte pointer to numerator bignum
   saved_sp = &5E ; 1 byte saved BASIC stack pointer
     offset = &5F ; 1 byte offset into SumP array (deals with shift of 8)
 
-num_used_index = &7a
+num_used_index = &7a ; 2 byte index
 
-   divisor = &60 ; 4 bytes / 32 bit unsigned integer
-      temp = &64 ; 4 bytes / 32 bit unsigned integer
+   divisor = &60 ; max 5 bytes / 40 bit unsigned integer
+      temp = &65 ; max 5 bytes / 40 bit unsigned integer
 IF BELLARD
    LSB_INC = 106*3
-         f = &68 ; 4 bytes / 32 bit unsigned integer
-         t = &6c ; 4 bytes / 32 bit unsigned integer
+         f = &6a ; 4 bytes / 32 bit unsigned integer
+         t = &7c ; 4 bytes / 32 bit unsigned integer
 ELSE
    LSB_INC = 106
-         k = &68 ; 4 bytes / 32 bit unsigned integer
+         k = &6a ; 4 bytes / 32 bit unsigned integer
 ENDIF

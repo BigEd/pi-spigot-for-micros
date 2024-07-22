@@ -108,6 +108,13 @@ FOR I,0,3
 NEXT
 ENDMACRO
 
+MACRO _ZERO40 result
+        LDA #0
+FOR I,0,4
+        STA result+I
+NEXT
+ENDMACRO
+
 MACRO _ADD32 result, arg1, arg2
         CLC
 FOR I,0,3
@@ -382,6 +389,7 @@ ELSE
 ENDIF
 ENDIF
 
+        STY     divisor+bytes-1  ; Y=0
 FOR j,7,0,-1
 ; Code offset to the Jth division bit slice compare block
 COMPARE_J  = j*(bytes*14+5) - (j>COMP_OPT_THRESHOLD)*(j-COMP_OPT_THRESHOLD)*2
@@ -494,7 +502,7 @@ NEXT
 
 .byte_loop_init
 ;   T%=0
-        _ZERO32 temp
+        _ZERO40 temp
 
 .byte_loop
 ;       T%=T%*256+NumeratorP?I%
