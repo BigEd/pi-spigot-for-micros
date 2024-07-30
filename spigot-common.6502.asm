@@ -358,7 +358,7 @@ ELSE
 
 ENDIF
 
-IF VISUALIZE
+IF VISUALIZE*0  ; update telltales in screen lines below the bignum
         _MOV16C np, DATA_START+LINE*2
         _ADD16  np, np, lsb_index
         LDY     #&00
