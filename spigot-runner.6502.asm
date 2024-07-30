@@ -6,7 +6,7 @@ include "macros.asm"
 
 ; Split screen between bignums (top) and text (bottom)
 IF VISUALIZE
-          MODE = 4
+          MODE =? 4
          SPLIT = 2
 IF MODE = 0
         SCREEN = &3000
