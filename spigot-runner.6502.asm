@@ -97,10 +97,11 @@ ENDIF
         LDA     arg1+2
         BNE     overflow
 
-; Calculate bignum = raw bignum + 2
+; Calculate bignum = raw bignum + 3 guard bytes
+; (the guard bytes increase precision to counter accumulated rounding errors)
         CLC
         LDA     arg1
-        ADC     #2
+        ADC     #3
         STA     big
         LDA     arg1+1
         ADC     #0
