@@ -23,7 +23,7 @@ rm -f ${BUILD}/*
 # Prepare a !BOOT file
 cat > ${BUILD}/boot <<EOF
 *FX11
-*RUN BEL19 $TARGETS
+CLOSE#0:*RUN BEL11 $TARGETS
 EOF
 
 # SSD File name
