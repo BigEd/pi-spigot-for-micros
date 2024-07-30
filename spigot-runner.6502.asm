@@ -472,14 +472,13 @@ ENDIF
         LDX     #0
         LDY     #0
         JSR     print_decimal_32
-        JSR     OSNEWL
 
         JSR     allocate_bignums
         PHP
 
 ; Print the required bignum
         JSR     print_string
-        EQUS    "   Big = "
+        EQUS    " ("
         NOP
         LDA     big
         STA     num
@@ -490,6 +489,9 @@ ENDIF
         STY     num+2
         STY     num+3
         JSR     print_decimal_32
+        JSR     print_string
+        EQUS    " bytes)"
+        NOP
         JSR     OSNEWL
 
         PLP
