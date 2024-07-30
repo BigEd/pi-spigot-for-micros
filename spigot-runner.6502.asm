@@ -888,9 +888,10 @@ NEXT
         ADC     arg2+1
         STA     arg2+1
 
-        LDA     #0       ; If C=1, incr lo byte of hi cell.
-        ADC     arg1
-        STA     arg1
+        BCC     l2       ; If C=1, incr lo byte of hi cell.
+        INC     arg1
+        BNE     l2
+        INC     arg1+1
 .l2
         DEY              ; If we haven't done 16 iterations yet,
         BNE     l1       ; then go around again.
