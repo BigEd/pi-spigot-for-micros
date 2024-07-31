@@ -85,6 +85,13 @@ ENDMACRO
 ; 32-bit MACROS
 ; ==================================================================================
 
+MACRO _MOV32 result, arg1
+FOR I,0,3
+        LDA arg1+I
+        STA result+I
+NEXT
+ENDMACRO
+
 MACRO _TST32 arg
         LDA arg
         ORA arg+1
@@ -131,6 +138,14 @@ FOR I,0,3
         ADC #((arg2 >> (I*8)) AND &FF)
         STA result+I
 NEXT
+ENDMACRO
+
+MACRO _INC32 result
+FOR I,0,3
+        INC result+I
+        BNE done
+NEXT
+.done
 ENDMACRO
 
 ; After the shift, if the least significant byte of the divisor is

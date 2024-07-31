@@ -102,3 +102,8 @@ ELSE
    LSB_INC = 106
          k = &6a ; 4 bytes / 32 bit unsigned integer
 ENDIF
+
+IF TEST_MODE
+  tcounter = &90 ; test mode digit counter
+   tdigits = &94 ; test mode limit
+ENDIF

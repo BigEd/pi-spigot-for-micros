@@ -1,3 +1,5 @@
+TEST_MODE =? FALSE
+
 include "variables.asm"
 
 include "macros.asm"
@@ -512,12 +514,6 @@ ENDIF
 
 .skip_overflow
 
-; Initialize bignums
-
-        LDX     #sump
-        JSR     set_initial_value
-        LDX     #numeratorp
-        JSR     set_initial_value_bigendian
 
 ; Store the number of digits in the results array
         LDX     #ndigits
@@ -531,8 +527,40 @@ ENDIF
         LDY     #>time1
         JSR     OSWORD
 
+; In test mode we generate PI really inefficiently by iterating from 1
+; and ndigits, calling spigot multiple times. In each call, spigot
+; outputs only he last digit that it calculates. To manage this we use
+; two additional 4-byte variables: tcounter (the current digit count)
+; and tdigits (a copy of the original ndigits which never changes).
+; The point of this test to to catch corner cases where the last
+; digit(s) are generate incorrectly for some values of ndigits.
+
+IF TEST_MODE
+        _MOV32  tdigits,ndigits
+        _ZERO32 tcounter
+.test_loop
+        _INC32  tcounter
+        _MOV32  ndigits,tcounter
+        JSR     allocate_bignums
+ENDIF
+
+; Initialize bignums
+        LDX     #sump
+        JSR     set_initial_value
+        LDX     #numeratorp
+        JSR     set_initial_value_bigendian
 ; Compute pi
         JSR     spigot
+IF TEST_MODE
+        _CMP32  tcounter, tdigits
+        BNE     test_loop
+        LDA     #134            ; POS and VPOS
+        JSR     OSBYTE
+        TXA
+        BEQ     skip_nl
+        JSR     OSNEWL          ; unwanted if last digit is in right column
+.skip_nl
+ENDIF
 
 ; time2=time
         LDA     #&01

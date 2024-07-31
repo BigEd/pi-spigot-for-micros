@@ -437,19 +437,34 @@ ENDIF
 
 .print_digit
 {
+IF TEST_MODE
+        PHA
+ELSE
         JSR     OSWRCH
+ENDIF
         _ADD32C ndigits, ndigits, &FFFFFFFF
         _TST32  ndigits
         BNE     return
+IF TEST_MODE
+        PLA
+        JSR     OSWRCH
+ELSE
         LDA     #134            ; POS and VPOS
         JSR     OSBYTE
         TXA
         BEQ     skip_nl
         JSR     OSNEWL          ; unwanted if last digit is in right column
 .skip_nl
+ENDIF
         LDX     saved_sp
         TXS
+IF TEST_MODE
+        RTS
 .return
+        PLA
+ELSE
+.return
+ENDIF
         RTS
 }
 

@@ -5,6 +5,8 @@
 # or similar
 DEBUG=${DEBUG:-0}
 
+TEST_MODE=${TEST_MODE:-0}
+
 VISUALIZE=${VISUALIZE:-0}
 
 MODE=${MODE:-4}
@@ -54,6 +56,7 @@ do
 
         beebasm \
             -D DEBUG=${DEBUG} \
+            -D TEST_MODE=${TEST_MODE} \
             -D VISUALIZE=${VISUALIZE} \
             -D MODE=${MODE} \
             -D BELLARD=${BELLARD} \
