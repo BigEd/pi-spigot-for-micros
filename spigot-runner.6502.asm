@@ -654,10 +654,14 @@ ENDIF
 ; Say hello
         JSR     print_string
 IF BELLARD
-        EQUS    "Bellard Pi Spigot", 13
+        EQUS    "Bellard Pi Spigot"
 ELSE
-        EQUS    "BBP Pi Spigot", 13
+        EQUS    "BBP Pi Spigot"
 ENDIF
+IF TEST_MODE
+        EQUS    " (Test mode)"
+ENDIF
+        EQUS    13
         NOP
         RTS
 }
@@ -665,7 +669,11 @@ ENDIF
 .print_secs
 {
         JSR     print_string
-        EQUS    " secs",13
+        EQUS    " secs"
+IF TEST_MODE
+        EQUS    " (Test mode)"
+ENDIF
+        EQUS    13
         NOP
         RTS
 }
