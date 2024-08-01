@@ -348,9 +348,30 @@ MACRO _DIVINIT
 
 ;   FOR I%=M% TO L% STEP -1
 
+        _ADD16  sp, sump, msb_index
+
         _SUB16  np, numeratorp, msb_index
         _SUB16  np_end, numeratorp, lsb_index
 
+IF OPTIMIZE_SHIFT
+        LDA     offset      ; A non-zero offset indicates the true
+                            ; denominator is 256x larger than the
+                            ; value that was passed in.
+        BNE     skip_adjust
+
+        _DEC16  sp          ; Updating sp (sum pointer) by subtracting
+                            ; one has the same effect as a 256x larger
+                            ; denominator (sum is little endian)
+
+        _DEC16  np_end      ; We also need to reduce the number of
+                            ; iterations by one to avoid bringing
+                            ; sum[lsb_index-1] into play. This was the
+                            ; source of a bug that referenced sum[-1]
+                            ; which is uninitialized, causing
+                            ; inconsistencies at the LSB between runs
+                            ; (e.g. for 12 digits).
+.skip_adjust
+ENDIF
         _CMP16  np_end, np  ; C=1 if arg1 >= arg2
         BCS     work_to_do
         PLA
@@ -358,13 +379,6 @@ MACRO _DIVINIT
         PLA                 ; pop the operation
         RTS
 .work_to_do
-        _ADD16  sp, sump, msb_index
-IF OPTIMIZE_SHIFT
-        LDA     offset
-        BNE     skip_adjust
-        _DEC16  sp
-.skip_adjust
-ENDIF
         LDY     #0
         RTS
 
@@ -495,9 +509,12 @@ NEXT
 
 ; self-modify the comparison at the end of the loop
 
-; compare the LSB and Used Indexes
-        _CMP16  lsb_index, num_used_index
-        BCC     terminate_on_used_index    ; branch if lsb_index < num_used_index
+; calculate the address of the used (i.e. non-zero) part of the numerator
+        _SUB16  temp, numeratorp, num_used_index
+
+; terminate on which ever of temp and np_end has the lower address
+        _CMP16  temp, np_end               ; C=1 if arg1 >= arg2
+        BCC     terminate_on_used_index
 
 .terminate_on_lsb_index
         LDA     np_end
@@ -506,7 +523,6 @@ NEXT
         STA     terminal_value_msb+1
         BNE     byte_loop_init
 .terminate_on_used_index
-        _SUB16  temp, numeratorp, num_used_index
         LDA     temp
         STA     terminal_value_lsb+1
         LDA     temp+1
@@ -631,16 +647,17 @@ NEXT
         CMP     #np_end+1         ; dynamically modified
         BNE     byte_loop_more
 
-; Already in low fat phase? then exit
-        LDA    byte_loop+2
-        CMP    #&A6
-        BEQ    exit
-
-; Finish something
-
-; compare the LSB and Used Indexes
-        _CMP16  lsb_index, num_used_index
-        BCC     modify_phase2    ; branch if lsb_index < num_used_index
+; Inspect the state of the code to see if the terminal values (patched
+; into the above comparisons) point to the true end of the numperator
+; (np_end) If not, then we need to perform phase 2 which continues the
+; division with the implied zeros through to np_end. Introspecting the
+; code like this saves an additional zeropage variable.
+        LDA     terminal_value_lsb+1
+        CMP     np_end
+        BNE     modify_phase2
+        LDA     terminal_value_msb+1
+        CMP     np_end+1
+        BNE     modify_phase2
 .exit
         RTS
 
