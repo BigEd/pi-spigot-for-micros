@@ -396,6 +396,8 @@ ENDIF
         LDY     #0
         LDA     (np),Y
         BEQ     num_zero
+        _TST16  num_used_index   ; Add a guard to prevent num_used_index going negative
+        BEQ     num_zero         ; This can happen when big is very small (< 3)
         _DEC16  num_used_index
         TYA
         INY

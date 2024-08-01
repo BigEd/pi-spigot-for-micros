@@ -2,6 +2,11 @@
 ; 16-bit MACROS
 ; ==================================================================================
 
+MACRO _TST16 arg
+        LDA arg
+        ORA arg+1
+ENDMACRO
+
 MACRO _INC16 result
         INC result
         BNE skip
