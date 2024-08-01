@@ -561,15 +561,16 @@ carry2 = temp + 2
         BCC     ok
         RTS
 .ok
-        LDY     np                ; use Y as the LSB of the loop
-        LDA     np+1
-        STA     oplda+2
-        STA     opsta+2
+        LDY     #0
         LDA     (np), Y
         TAX
         LDA     mult250_table+&100, X
         STA     carry             ; fill the pipeline
         CLC
+        LDY     np                ; use Y as the LSB of the loop
+        LDA     np+1
+        STA     oplda+2
+        STA     opsta+2
         _DEC16  np_end
         JMP     next
 .loop
@@ -668,7 +669,7 @@ ENDIF
         _MOV16  temp, lsb_index
         _CMP16  lsb_index, num_used_index
         BCS     skip
-        _SUB16C temp, num_used_index, 1
+        _MOV16  temp, num_used_index
 .skip
         SEC
         LDA     np
