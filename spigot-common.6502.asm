@@ -676,7 +676,6 @@ ENDIF
         SBC     temp+1
         STA     1,X
         RTS
-        RTS
 }
 
 IF DEBUG
