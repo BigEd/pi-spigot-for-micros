@@ -664,6 +664,16 @@ ENDIF
 ; Calculate the address of the LSB of the numerator, using which ever
 ; of lsb_index or num_used_index is the larger.
 ; Result written to 0,X and 1,X
+;
+; Note: num_used_index currently indicates the first trailing zero
+; byte of the numerator. When returning this, it's important to
+; include this element, to provide space for the rescale code to
+; extent the numerator towards the LSB.
+;
+; More specifically, this function is used in three places:
+; BBP: mult10_big_endian, needs no extra bytes
+; BBP: div16_big_endian, needs one extra byte (to extend into)
+; BEL: rescale250256_big_endian, needs one extra byte (to extend into)
 .calc_num_lsb_address
 {
         _MOV16  temp, lsb_index
