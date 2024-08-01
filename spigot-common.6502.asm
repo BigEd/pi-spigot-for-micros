@@ -226,7 +226,6 @@ ENDIF
 
 ; Index of the first zero element of the numerator
         _MOV16  num_used_index, msb_index
-        _DEC16  num_used_index
 
 ; REPEAT
 
@@ -393,14 +392,14 @@ ENDIF
 ; Maintain a index for how much of the numerator is used (non zero)
         _MOV16  np, numeratorp
         _SUB16  np, np, num_used_index
-        LDY     #0
+        LDY     #1
         LDA     (np),Y
         BEQ     num_zero
         _TST16  num_used_index   ; Add a guard to prevent num_used_index going negative
         BEQ     num_zero         ; This can happen when big is very small (< 3)
         _DEC16  num_used_index
-        TYA
         INY
+        LDA     #&00
         STA     (np),Y
         INY
         LDA     #&FF
@@ -665,10 +664,10 @@ ENDIF
 ; of lsb_index or num_used_index is the larger.
 ; Result written to 0,X and 1,X
 ;
-; Note: num_used_index currently indicates the first trailing zero
-; byte of the numerator. When returning this, it's important to
-; include this element, to provide space for the rescale code to
-; extent the numerator towards the LSB.
+; Note: num_used_index currently indicates the final non-zero byte of
+; the numerator. When returning this, it's important to include the
+; follwoing zero, to provide space for the rescale code to extend the
+; numerator towards the LSB.
 ;
 ; More specifically, this function is used in three places:
 ; BBP: mult10_big_endian, needs no extra bytes
@@ -679,7 +678,7 @@ ENDIF
         _MOV16  temp, lsb_index
         _CMP16  lsb_index, num_used_index
         BCS     skip
-        _MOV16  temp, num_used_index
+        _SUB16C temp, num_used_index, 1
 .skip
         SEC
         LDA     np
