@@ -32,6 +32,12 @@ DEBUG          =? FALSE
 ; Workaround for a bug in the PiTubeDirect JIT Co Pro
 PITUBE_JIT_FIX =? FALSE
 
+; Final digits test mode
+TEST_MODE =? FALSE
+
+; Number of guard bytes to add to big
+GUARD =? 3
+
 ; ==================================================================================
 ; Constants
 ; ==================================================================================

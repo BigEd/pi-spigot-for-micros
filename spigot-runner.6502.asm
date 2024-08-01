@@ -1,5 +1,3 @@
-TEST_MODE =? FALSE
-
 include "variables.asm"
 
 include "macros.asm"
@@ -103,7 +101,7 @@ ENDIF
 ; (the guard bytes increase precision to counter accumulated rounding errors)
         CLC
         LDA     arg1
-        ADC     #3
+        ADC     #GUARD
         STA     big
         LDA     arg1+1
         ADC     #0

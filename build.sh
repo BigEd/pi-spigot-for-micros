@@ -15,6 +15,8 @@ OPTIMIZE_DIV24=${OPTIMIZE_DIV24:-1}
 
 PITUBE_JIT_FIX=${PITUBE_JIT_FIX:-0}
 
+GUARD=${GUARD:-3}
+
 PAGES=${PAGES:-04 08 0E 11 19}
 
 TARGETS=${TARGETS:-80,200,400,800,100,1000,3000}
@@ -63,6 +65,7 @@ do
             -D BASE=0x${BASE}00 \
             -D OPTIMIZE_DIV24=${OPTIMIZE_DIV24} \
             -D PITUBE_JIT_FIX=${PITUBE_JIT_FIX} \
+            -D GUARD=${GUARD} \
             -dd -labels ${BUILD}/${NAME}.labels \
             -v \
             -i spigot-runner.6502.asm \
