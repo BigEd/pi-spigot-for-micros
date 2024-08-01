@@ -605,10 +605,10 @@ ENDIF
 ELSE
 
 .mult10_little_endian
-        _MULTIPLY_LITTLE_ENDIAN  mult10_table, 0
+        _MULTIPLY_LITTLE_ENDIAN  mult10_table
 
 .mult10_big_endian
-        _MULTIPLY_BIG_ENDIAN  mult10_table, 0
+        _MULTIPLY_BIG_ENDIAN  mult10_table
 
 ; DEF PROCdiv16(BignumP)
 ;   LOCAL carry, temp

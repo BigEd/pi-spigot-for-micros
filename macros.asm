@@ -233,11 +233,8 @@ ENDIF
 
 carry = temp + 1
 
-MACRO _MULTIPLY_LITTLE_ENDIAN table, extra
+MACRO _MULTIPLY_LITTLE_ENDIAN table
         _ADD16  np_end, np, big   ; np_end is one beyond the last element of work
-IF extra
-        _ADD16C np_end, np_end, extra ; any extra bytes beyond the MSB?
-ENDIF
         _ADD16  np, np, lsb_index ; np is the first element of work
         _CMP16  np, np_end        ; range check up front to be safe
         BCC     ok
@@ -275,11 +272,8 @@ ENDIF
         RTS
 ENDMACRO
 
-MACRO _MULTIPLY_BIG_ENDIAN table, extra
+MACRO _MULTIPLY_BIG_ENDIAN table
         _SUB16  np_end, np, big   ; np_end is one beyond the last element of work
-IF extra
-        _SUB16C np_end, np_end, extra ; any extra bytes beyond the MSB?
-ENDIF
         LDX     #np
         JSR     calc_num_lsb_address
         _CMP16  np_end, np        ; range check up front to be safe
