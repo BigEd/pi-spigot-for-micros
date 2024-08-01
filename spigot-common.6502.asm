@@ -554,7 +554,7 @@ carry2 = temp + 2
 {
         _SUB16  np_end, np, big   ; np_end is one beyond the last element of work
         LDX     #np               ; np is the first element of work
-        JSR     calc_num_lsb_index
+        JSR     calc_num_lsb_address
         _CMP16  np_end, np        ; range check up front to be safe
         BCC     ok
         RTS
@@ -623,7 +623,7 @@ ELSE
 .div16_big_endian
 {
         LDX     #np_end
-        JSR     calc_num_lsb_index
+        JSR     calc_num_lsb_address
         _INC16  np_end            ; np_end is one beyond the last element of work
         _SUB16  np, np, big
         _INC16  np                ; np is thefirst element of work
@@ -661,7 +661,7 @@ ENDIF
 ; Calculate the address of the LSB of the numerator, using which ever
 ; of lsb_index or num_used_index is the larger.
 ; Result written to 0,X and 1,X
-.calc_num_lsb_index
+.calc_num_lsb_address
 {
         _MOV16  temp, lsb_index
         _CMP16  lsb_index, num_used_index

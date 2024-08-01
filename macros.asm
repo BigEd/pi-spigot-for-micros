@@ -281,7 +281,7 @@ IF extra
         _SUB16C np_end, np_end, extra ; any extra bytes beyond the MSB?
 ENDIF
         LDX     #np
-        JSR     calc_num_lsb_index
+        JSR     calc_num_lsb_address
         _CMP16  np_end, np        ; range check up front to be safe
         BCC     ok
         RTS
