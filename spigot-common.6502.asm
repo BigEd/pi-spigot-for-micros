@@ -439,6 +439,9 @@ ENDIF
 .print_digit
 {
 IF TEST_MODE
+        LDX     last
+        STX     second_last
+        STA     last
         PHA
 ELSE
         JSR     OSWRCH
@@ -447,6 +450,21 @@ ENDIF
         _TST32  ndigits
         BNE     return
 IF TEST_MODE
+
+;; ----------------------------
+;; Code to validate last digit
+;; ----------------------------
+        LDA      previous_last
+        BMI      check_done
+        CMP      second_last
+        BEQ      check_done
+        LDA      #'*'
+        JSR      OSWRCH
+.check_done
+        LDA      last
+        STA      previous_last
+;; ----------------------------
+
         PLA
         JSR     OSWRCH
 ELSE

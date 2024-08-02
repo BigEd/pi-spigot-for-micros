@@ -534,6 +534,8 @@ ENDIF
 ; digit(s) are generate incorrectly for some values of ndigits.
 
 IF TEST_MODE
+        LDA     #&FF
+        STA     previous_last ; negative value is invalid
         _MOV32  tdigits,ndigits
         _ZERO32 tcounter
 .test_loop

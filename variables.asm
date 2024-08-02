@@ -110,6 +110,9 @@ ELSE
 ENDIF
 
 IF TEST_MODE
-  tcounter = &90 ; test mode digit counter
-   tdigits = &94 ; test mode limit
+     tcounter = &90 ; test mode digit counter
+      tdigits = &94 ; test mode limit
+         last = &98 ; last digit in the current run
+  second_last = &99 ; last but one digit in the current run
+previous_last = &9a ; last digit from the previous run
 ENDIF
