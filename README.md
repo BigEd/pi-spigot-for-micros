@@ -1,5 +1,5 @@
 # pi-spigot-for-micros
-Calculating pi digit by digit on 1980s micros - a work in progress
+Calculating pi digit by digit on 1980s micros - a work in progress (see the discussion thread [here](https://www.stardot.org.uk/forums/viewtopic.php?t=29301).)
 
 We hope to benchmark against previous work by litwr which uses Rabinowitz' spigot:
 - http://litwr2.atspace.eu/pi/pi-spigot-benchmark.html
