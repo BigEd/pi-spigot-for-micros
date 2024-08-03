@@ -9,6 +9,9 @@ ELSE
 INCLUDE_DIV40 =? FALSE
 ENDIF
 
+; Whether to perform rounding after the division
+DIV_ROUNDING =? TRUE
+
 ; Include versions of DIVADD/SUB with 24-bit maths for small divisors
 ; Bellard 1000 runs 17.9% faster
 ;     BBP 1000 runs 28.0% faster

@@ -191,6 +191,70 @@ ENDIF
        _DIVINIT
 
 ; ==================================================================================
+; Shared division rounding code
+; ==================================================================================
+; Division rounding code that is independent of the division width
+;
+; On Entry:
+; - top of stack contains operation in carry
+; - Y = 0
+; - sp points to LSB of sum
+; - temp contains the remainder, zero extended to 5 bytes
+; - divisor contains the divisor << 8
+
+; Test if temp * 2 >= divisor and round appropriately
+
+IF DIV_ROUNDING
+.divround
+{
+        ASL     temp         ; double the remainder
+        ROL     temp+1
+        ROL     temp+2
+        ROL     temp+3
+        ROL     temp+4
+
+        LDA     temp         ; compare to the divisor (which is shifted 8 bits left)
+        CMP     divisor+1
+        LDA     temp+1
+        SBC     divisor+2
+        LDA     temp+2
+        SBC     divisor+3
+        LDA     temp+3
+        SBC     divisor+4
+        LDA     temp+4
+        SBC     #0
+        BCC     skip
+
+        PLP                  ; C=0 for add, C=1 for subtract
+        BCS     sub
+
+.add
+        SEC
+.add_loop
+        LDA     (sp),Y
+        ADC     #&00
+        STA     (sp),Y
+        INY
+        BCS     add_loop
+        RTS
+
+.sub
+        CLC
+.sub_loop
+        LDA     (sp),Y
+        SBC     #&00
+        STA     (sp),Y
+        INY
+        BCC     sub_loop
+        RTS
+
+.skip
+        PLP
+        RTS
+}
+ENDIF
+
+; ==================================================================================
 ; Main Program
 ; ==================================================================================
 

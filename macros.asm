@@ -447,6 +447,9 @@ NEXT
 
 ; Configure the operation
         PLP
+IF DIV_ROUNDING
+        PHP
+ENDIF
         BCS     configure_subtract
 .configure_add
         LDA     #&00    ; initial byte value
@@ -659,7 +662,11 @@ NEXT
         CMP     np_end+1
         BNE     modify_phase2
 .exit
+IF DIV_ROUNDING
+        JMP     divround
+ELSE
         RTS
+ENDIF
 
 .modify_phase2
 

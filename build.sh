@@ -13,6 +13,8 @@ MODE=${MODE:-4}
 
 OPTIMIZE_DIV24=${OPTIMIZE_DIV24:-1}
 
+DIV_ROUNDING=${DIV_ROUNDING:-1}
+
 PITUBE_JIT_FIX=${PITUBE_JIT_FIX:-0}
 
 GUARD=${GUARD:-3}
@@ -64,6 +66,7 @@ do
             -D BELLARD=${BELLARD} \
             -D BASE=0x${BASE}00 \
             -D OPTIMIZE_DIV24=${OPTIMIZE_DIV24} \
+            -D DIV_ROUNDING=${DIV_ROUNDING} \
             -D PITUBE_JIT_FIX=${PITUBE_JIT_FIX} \
             -D GUARD=${GUARD} \
             -dd -labels ${BUILD}/${NAME}.labels \
