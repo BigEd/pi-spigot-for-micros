@@ -73,25 +73,29 @@ ENDIF
 
 .allocate_bignums
 {
-; Check ndigits < &40000
-        LDA     ndigits+3
-        BNE     overflow
-        LDA     ndigits+2
-        AND     #&FC
-        BNE     overflow
-
 ; Calculate raw bignum = ndigits / (8 * LOG(2)
         LDA     ndigits
+        CLC
+        ADC     #2
         STA     arg1
         LDA     ndigits+1
+        ADC     #0
         STA     arg1+1
         LDA     ndigits+2
+        ADC     #0
         STA     arg1+2
         LDA     #<(1+&10000/LOG(2)/8)  ;; The +1 is to ensure rounding up
         STA     arg2
         LDA     #>(1+&10000/LOG(2)/8)
         STA     arg2+1
         JSR     multiply_24x16
+
+; Check ndigits < &40000
+        LDA     ndigits+3
+        BNE     overflow
+        LDA     ndigits+2
+        AND     #&FC
+        BNE     overflow
 
 ; If big >= 64K it clearly won't fit
         LDA     arg1+2
